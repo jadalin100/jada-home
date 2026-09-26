@@ -1,0 +1,25 @@
+{
+ "usabo": [
+  {
+   "t": "Demo topic 1",
+   "done": true
+  },
+  {
+   "t": "Demo topic 2",
+   "done": false
+  }
+ ],
+ "scioly": {
+  "Demo Event": [
+   {
+    "t": "Demo topic",
+    "done": false
+   }
+  ]
+ },
+ "viola": [
+  "2026-09-25",
+  "2026-09-24",
+  "2026-09-23"
+ ]
+}

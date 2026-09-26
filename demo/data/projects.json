@@ -1,0 +1,32 @@
+[
+ {
+  "id": "sample-a",
+  "name": "Sample Project A",
+  "kind": "Research",
+  "blurb": "Placeholder project for demo mode.",
+  "status": "Demo status text.",
+  "next": "Demo next step.",
+  "folder": "",
+  "links": []
+ },
+ {
+  "id": "sample-b",
+  "name": "Sample Project B",
+  "kind": "DECA",
+  "blurb": "Another placeholder.",
+  "status": "Demo status.",
+  "next": "",
+  "folder": "",
+  "links": []
+ },
+ {
+  "id": "sample-c",
+  "name": "Sample Study",
+  "kind": "Study",
+  "blurb": "Placeholder.",
+  "status": "Demo.",
+  "next": "",
+  "folder": "",
+  "links": []
+ }
+]

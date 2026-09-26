@@ -1,0 +1,18 @@
+[
+ {
+  "date": "2026-09-29",
+  "label": "Demo deadline soon",
+  "project": "sample-a",
+  "verified": "2026-09-26",
+  "source": "https://example.com",
+  "note": ""
+ },
+ {
+  "date": "2026-10-16",
+  "label": "Demo deadline later",
+  "project": "sample-b",
+  "verified": false,
+  "source": "",
+  "note": "placeholder"
+ }
+]
