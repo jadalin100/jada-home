@@ -10,7 +10,7 @@ const shas = {};           // path -> sha, needed to update a file on GitHub
 const memFiles = {};       // demo-mode writes
 let cache = {};            // path -> text for this page load
 
-const token = () => { try { return localStorage.getItem('ghToken'); } catch { return null; } };
+const token = () => { try { return sessionStorage.getItem('ghToken') || localStorage.getItem('ghToken'); } catch { return null; } };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const today = (d = new Date()) => d.toLocaleDateString('en-CA');
 const addDays = (iso, n) => { const d = new Date(iso + 'T12:00'); d.setDate(d.getDate() + n); return today(d); };
@@ -37,7 +37,7 @@ async function api(path, opts = {}) {
     cache: 'no-store',
   });
   if (r.status === 404) return null;
-  if (r.status === 401) { localStorage.removeItem('ghToken'); throw new Error('Token rejected. Paste a new one.'); }
+  if (r.status === 401) { lock(); throw new Error('Token rejected. Set up a new one under "Change password or token".'); }
   if (!r.ok) throw new Error(`GitHub said ${r.status} for ${path}`);
   return r.json();
 }
@@ -420,23 +420,89 @@ async function viewStudy() {
   document.getElementById('viola').onclick = async () => { study.viola.push(t); await persist(`Viola practice ${t}`); route(); };
 }
 
-function viewUnlock() {
+// ---------- password unlock ----------
+// vault.json (public, in the site repo) holds the GitHub token encrypted with her password:
+// PBKDF2-SHA256 (600k rounds) -> AES-GCM. Without the password the file is useless, so the password must be long.
+const SITE_REPO = 'jadalin100/jada-home';
+const ITER = 600000;
+const bytes = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const b64 = u8 => btoa(String.fromCharCode(...u8));
+async function keyFrom(pw, salt, iter = ITER) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function lockToken(tok, pw) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await keyFrom(pw, salt), new TextEncoder().encode(tok)));
+  return { v: 1, iter: ITER, salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+}
+async function unlockToken(vault, pw) {
+  const key = await keyFrom(pw, bytes(vault.salt), vault.iter);
+  return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes(vault.iv) }, key, bytes(vault.ct)));
+}
+function keepToken(tok, remember) {
+  sessionStorage.setItem('ghToken', tok);
+  if (remember) localStorage.setItem('ghToken', tok);
+}
+async function ghFetch(url, opts = {}, tok = token()) {
+  return fetch('https://api.github.com/repos/' + url, { ...opts, cache: 'no-store',
+    headers: { Authorization: `Bearer ${tok}`, Accept: 'application/vnd.github+json' } });
+}
+
+async function viewUnlock() {
+  const r = await fetch('vault.json', { cache: 'no-store' }).catch(() => null);
+  const vault = r && r.ok ? await r.json() : null;
   $view.innerHTML = `
     <div class="hero"><h1>Hello,<br>Jada.</h1></div>
     <div class="card" style="max-width:34rem">
-      <p>Paste your GitHub token to open your journal. It stays in this browser only.</p>
-      <p class="small muted">Make it at GitHub → Settings → Developer settings → Fine-grained tokens. Repository access: only <strong>${esc(REPO)}</strong>. Permission: Contents, read and write.</p>
-      <label class="field" for="tok">Token</label><input type="password" id="tok" autocomplete="off">
-      <p><button id="go">Open journal</button></p>
+      ${vault ? `
+        <label class="field" for="pw">Password</label><input type="password" id="pw" autocomplete="current-password">
+        <p class="small"><label><input type="checkbox" id="remember"> Stay unlocked on this device (skip on shared computers)</label></p>
+        <p><button id="go">Open journal</button></p>
+        <details class="small"><summary>Change password or token</summary><div id="setupSlot"></div></details>`
+      : `<p>Set up your password once. After that, any browser opens with just the password.</p><div id="setupSlot"></div>`}
     </div>`;
-  document.getElementById('go').onclick = () => { localStorage.setItem('ghToken', document.getElementById('tok').value.trim()); route(); };
+  document.getElementById('setupSlot').innerHTML = `
+    <label class="field" for="tok">New GitHub token</label><input type="password" id="tok" autocomplete="off">
+    <p class="small muted">Fine-grained token. Repository access: <strong>${esc(REPO)}</strong> and <strong>${esc(SITE_REPO)}</strong>. Permission: Contents, read and write.</p>
+    <label class="field" for="pw1">Password (at least 20 characters, e.g. 4 random words)</label><input type="password" id="pw1" autocomplete="new-password">
+    <label class="field" for="pw2">Type it again</label><input type="password" id="pw2" autocomplete="new-password">
+    <p><button id="setup">Save password</button></p>`;
+
+  if (vault) {
+    const go = async () => {
+      const b = document.getElementById('go'); b.disabled = true; b.textContent = 'Unlocking…';
+      try { keepToken(await unlockToken(vault, document.getElementById('pw').value), document.getElementById('remember').checked); route(); }
+      catch { toast('Wrong password.'); b.disabled = false; b.textContent = 'Open journal'; }
+    };
+    document.getElementById('go').onclick = go;
+    document.getElementById('pw').onkeydown = e => { if (e.key === 'Enter') go(); };
+  }
+  document.getElementById('setup').onclick = async () => {
+    const tok = document.getElementById('tok').value.trim(), p1 = document.getElementById('pw1').value, p2 = document.getElementById('pw2').value;
+    if (p1.length < 20) return toast('Use at least 20 characters.');
+    if (p1 !== p2) return toast('The two passwords do not match.');
+    if (!(await ghFetch(`${REPO}/contents/data`, {}, tok)).ok) return toast(`That token cannot read ${REPO}.`);
+    const path = `${SITE_REPO}/contents/vault.json`;
+    const old = await ghFetch(path, {}, tok);
+    const sha = old.ok ? (await old.json()).sha : undefined;
+    const put = await ghFetch(path, { method: 'PUT', body: JSON.stringify({ message: 'Update password vault', sha,
+      content: b64encode(JSON.stringify(await lockToken(tok, p1)) + '\n') }) }, tok);
+    if (!put.ok) return toast(`That token cannot write to ${SITE_REPO}. Add that repo to the token.`);
+    keepToken(tok, false);
+    toast('Password saved. It works everywhere in about a minute.');
+    route();
+  };
 }
+
+function lock() { sessionStorage.removeItem('ghToken'); localStorage.removeItem('ghToken'); }
 
 // ---------- router ----------
 async function route() {
   cache = {};
   const [page, arg] = decodeURIComponent(location.hash.slice(1) || 'home').split('/');
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + ({ archive: 'entries', entry: 'entries', week: 'entries', project: 'projects' }[page] || page)));
+  if (page === 'lock') { lock(); location.hash = 'home'; return; }
   if (!DEMO && !token()) return viewUnlock();
   try {
     await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy }[page] || viewHome)(arg);
