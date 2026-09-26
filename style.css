@@ -123,3 +123,80 @@ mark { background: var(--blush); color: inherit; border-radius: 3px; }
 details summary { cursor: pointer; }
 #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: .6rem 1.2rem; border-radius: 99px; font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .25s; }
 #toast.show { opacity: 1; }
+
+/* ---------- notebook look (journal + entries) ---------- */
+.doodle {
+  margin: 1.5rem 0; padding: clamp(18px, 4vw, 48px); border-radius: 28px;
+  background-color: var(--lilac);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' fill='none' stroke='white' stroke-opacity='.55' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M14 30c10-14 26 6 36-8s22-6 18 8'/%3E%3Ccircle cx='118' cy='28' r='9'/%3E%3Cpath d='M100 90l6-10 6 10 10 2-8 7 2 10-10-5-10 5 2-10-8-7z'/%3E%3Cpath d='M20 120c8 10 20 10 28 0s20-10 28 0'/%3E%3Cpath d='M130 130c-6-10 12-16 8-2s-16 6-6 14'/%3E%3C/svg%3E");
+}
+.notebook {
+  position: relative; max-width: 860px; margin: 0 auto; background: #fffdfb; color: #2c2a35;
+  border-radius: 18px; padding: 2.6rem clamp(20px, 4vw, 48px) 2rem clamp(44px, 6vw, 72px);
+  box-shadow: 0 18px 40px -20px rgba(44, 42, 53, .35);
+}
+/* spiral rings down the left edge */
+.notebook::before {
+  content: ""; position: absolute; left: -10px; top: 24px; bottom: 24px; width: 28px;
+  background: radial-gradient(ellipse 9px 5px at 50% 50%, transparent 55%, #9f97dd 60% 100%, transparent 101%) 0 0 / 28px 22px repeat-y;
+}
+/* colored index tabs on the right edge */
+.notebook .tabs { position: absolute; right: -14px; top: 40px; display: grid; gap: 8px; }
+.notebook .tabs i { width: 16px; height: 46px; border-radius: 0 8px 8px 0; background: var(--blush); }
+.notebook .tabs i:nth-child(2) { background: #fbe0a0; }
+.notebook .tabs i:nth-child(3) { background: var(--sky); }
+.notebook .tabs i:nth-child(4) { background: var(--lilac); }
+.tape {
+  position: absolute; top: -12px; left: 50%; width: 130px; height: 26px; transform: translateX(-50%) rotate(-3deg);
+  background: repeating-linear-gradient(45deg, rgba(246,195,214,.85) 0 8px, rgba(255,255,255,.55) 8px 11px); border-radius: 2px;
+}
+.notebook .clip { position: absolute; right: 36px; top: -30px; width: 46px; transform: rotate(10deg); }
+.notebook .nb-title { font-size: clamp(2.2rem, 5vw, 3.6rem); margin: .4rem 0 .6rem; }
+.notebook .date { letter-spacing: .1em; text-transform: uppercase; font-size: .8rem; color: #6d6878; }
+.notebook .field, .notebook .muted { color: #6d6878; }
+.notebook h3 { margin-top: 1.4rem; }
+/* ruled paper for writing */
+.notebook textarea, .ruled {
+  background: transparent; border: 0; border-radius: 0; padding: 0 .2rem; color: #2c2a35;
+  line-height: 32px; background-image: linear-gradient(transparent 31px, #e3dcef 31px); background-size: 100% 32px; background-attachment: local;
+}
+.notebook textarea:focus { outline: none; background-color: rgba(199,193,243,.12); }
+.notebook input[type=text] { background: #faf7f3; color: #2c2a35; }
+.notebook .moods button, .notebook .chips button { color: #2c2a35; }
+.notebook .moods button[aria-pressed=true], .notebook .chips button[aria-pressed=true] { background: #2c2a35; color: #fff; }
+.notebook button:not(.ghost):not([data-mood]):not([data-tag]), .notebook .btn { background: #2c2a35; color: #fff; }
+.notebook button.ghost { color: #2c2a35; }
+
+/* entry pages as little notebook sheets */
+.pages { display: grid; gap: 1.6rem 1.2rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin-top: 1.4rem; }
+.page {
+  position: relative; display: block; text-decoration: none; color: #2c2a35; background: #fffdfb; border-radius: 14px;
+  padding: 1.5rem 1.2rem 1rem 2.2rem; min-height: 150px; box-shadow: 0 10px 24px -16px rgba(44,42,53,.4); transition: transform .2s ease;
+  border-left: 8px solid var(--blush);
+}
+.page:hover { transform: translateY(-3px) rotate(-.4deg); }
+.page .tape { width: 80px; height: 20px; top: -9px; }
+.page .d { font-family: Italiana, serif; font-size: 1.35rem; display: block; margin-bottom: .3rem; }
+.page .tag { color: #6d6878; }
+.page.mood-sunny { border-left-color: var(--peach); }
+.page.mood-calm  { border-left-color: var(--sky); }
+.page.mood-busy  { border-left-color: var(--blush); }
+.page.mood-low   { border-left-color: var(--lilac); }
+.page.mood-proud { border-left-color: #fbe0a0; }
+
+/* editing bits */
+button.x { background: transparent; color: var(--ink-soft); border: 0; padding: 0 .4rem; font-size: 1.2rem; letter-spacing: 0; margin-left: auto; }
+button.x:hover { color: var(--urgent); }
+.dl-row { display: grid; grid-template-columns: 150px 1.4fr 1fr 1.2fr 32px; gap: .5rem; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--line); }
+.dl-row.head { border: 0; }
+.dl-row .note { grid-column: 2 / -1; }
+.dl-row input, select { padding: .5rem .6rem; }
+select { font: inherit; color: var(--ink); background: rgba(255,255,255,.5); border: 1px solid var(--line); border-radius: 14px; width: 100%; }
+.card.add { border-style: dashed; }
+@media (max-width: 820px) {
+  .dl-row { grid-template-columns: 1fr 32px; }
+  .dl-row > :not(.x):not(.note) { grid-column: 1; }
+  .dl-row .x { grid-row: 1; grid-column: 2; }
+  .dl-row.head { display: none; }
+  .notebook .tabs { display: none; }
+}

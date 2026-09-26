@@ -100,8 +100,8 @@ const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good 
 
 async function viewHome() {
   const t = today();
-  const [quoteText, projects, deadlines, yText, routineNames, study] = await Promise.all([
-    read(`quotes/${t}.md`), readJSON('data/projects.json', []), readJSON('data/deadlines.json', []),
+  const [quoteText, todos, deadlines, yText, routineNames, study] = await Promise.all([
+    read(`quotes/${t}.md`), readJSON('data/todos.json', []), readJSON('data/deadlines.json', []),
     read(`journal/${addDays(t, -1)}.md`), list('routines'), readJSON('data/study.json', { viola: [] }),
   ]);
   const y = parse(yText, addDays(t, -1));
@@ -119,10 +119,15 @@ async function viewHome() {
 
     <div class="split">
       <div class="card">
-        <h2>Today's to-do</h2>
-        ${y.todo.length ? `<ul class="checks">${y.todo.map((it, i) => `
-          <li><input type="checkbox" id="td${i}" data-i="${i}" ${it.done ? 'checked' : ''}><label for="td${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label></li>`).join('')}</ul>`
-          : `<p class="muted">Nothing planned from last night. <a href="#journal">Write tonight's log</a> and list tomorrow's to-dos.</p>`}
+        <h2>To-do</h2>
+        ${y.todo.length ? `<p class="kind">From last night's log</p><ul class="checks">${y.todo.map((it, i) => `
+          <li><input type="checkbox" id="td${i}" data-i="${i}" ${it.done ? 'checked' : ''}><label for="td${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label></li>`).join('')}</ul>` : ''}
+        <p class="kind" style="margin-top:1rem">Anytime</p>
+        <ul class="checks" id="anytime">${todos.map((it, i) => `
+          <li><input type="checkbox" id="at${i}" data-a="${i}" ${it.done ? 'checked' : ''}><label for="at${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label>
+          <button class="x" data-del="${i}" aria-label="Delete ${esc(it.t)}">×</button></li>`).join('')}</ul>
+        <div class="row"><input type="text" id="newTodo" placeholder="Add a to-do and press Enter" aria-label="New to-do"></div>
+        ${todos.some(x => x.done) ? '<p><button class="ghost" id="clearDone">Clear checked</button></p>' : ''}
       </div>
       <div class="card">
         <h2>Viola</h2>
@@ -144,27 +149,24 @@ async function viewHome() {
     </section>
 
     <section>
-      <h2>Projects</h2>
-      <div class="grid">${projects.map(p => `
-        <a class="card" href="#project/${esc(p.id)}">
-          <div class="kind">${esc(p.kind)}</div><h3>${esc(p.name)}</h3>
-          <p class="small">${esc(p.status)}</p>
-          ${p.next ? `<p class="small muted">Next: ${esc(p.next)}</p>` : ''}
-        </a>`).join('')}</div>
-    </section>
-
-    <section>
       <h2>Routine emails</h2>
       <div class="grid">${routines.map(([n, txt]) => `
         <details class="card"><summary><span class="kind">${esc(n.replace('.md', ''))}</span><br>${esc((txt || '').split('\n').find(l => l.trim()) || '')}</summary>
         <div class="prose small">${esc(txt)}</div></details>`).join('') || '<p class="muted">Briefs show up here after the 7am run.</p>'}</div>
     </section>`;
 
-  $view.querySelectorAll('.checks input').forEach(cb => cb.onchange = async () => {
+  $view.querySelectorAll('.checks input[data-i]').forEach(cb => cb.onchange = async () => {
     y.todo[cb.dataset.i].done = cb.checked;
     cb.nextElementSibling.classList.toggle('done', cb.checked);
     await save(`journal/${y.date}.md`, serialize(y), `Check off to-do (${y.date})`);
   });
+  const saveTodos = async msg => { await save('data/todos.json', JSON.stringify(todos, null, 1) + '\n', msg); route(); };
+  $view.querySelectorAll('[data-a]').forEach(cb => cb.onchange = () => { todos[cb.dataset.a].done = cb.checked; saveTodos('Check off to-do'); });
+  $view.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { todos.splice(b.dataset.del, 1); saveTodos('Delete to-do'); });
+  const nt = document.getElementById('newTodo');
+  nt.onkeydown = ev => { if (ev.key === 'Enter' && nt.value.trim()) { todos.push({ t: nt.value.trim(), done: false, added: t }); saveTodos('Add to-do'); } };
+  const cd = document.getElementById('clearDone');
+  if (cd) cd.onclick = () => { todos.splice(0, todos.length, ...todos.filter(x => !x.done)); saveTodos('Clear checked to-dos'); };
   const vb = document.getElementById('viola');
   vb.onclick = async () => { study.viola.push(t); await save('data/study.json', JSON.stringify(study, null, 1) + '\n', `Viola practice ${t}`); route(); };
 }
@@ -181,14 +183,22 @@ async function save(path, text, msg) {
   catch (e) { toast(e.message); throw e; }
 }
 
+// Notebook page: spiral rings, washi tape, binder clip, colored tabs, on a doodle backdrop.
+const CLIP = `<svg class="clip" viewBox="0 0 60 64" aria-hidden="true"><path d="M8 26h44l-6 34H14z" fill="var(--ink)"/>
+  <path d="M18 28 L14 4 Q14 0 18 0 L22 0 Q26 0 26 4 L24 28 M42 28 L36 4 Q36 0 40 0 L44 0 Q48 0 46 4 L40 28" fill="none" stroke="#b8b3c4" stroke-width="3"/></svg>`;
+const notebook = (inner, extra = '') => `
+  <div class="doodle ${extra}"><article class="notebook">
+    <span class="tape"></span>${CLIP}<div class="tabs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    ${inner}
+  </article></div>`;
+
 async function viewJournal(date = today()) {
   const [text, projects] = await Promise.all([read(`journal/${date}.md`), readJSON('data/projects.json', [])]);
   const e = parse(text, date);
   if (!e.todo.length) e.todo.push({ t: '', done: false });
   setMood(e.mood);
-  $view.innerHTML = `
-    <div class="hero"><div class="date">${esc(prettyDate(date))}</div><h1>Dear diary</h1></div>
-    <div class="card">
+  $view.innerHTML = notebook(`
+      <div class="date">${esc(prettyDate(date))}</div><h1 class="nb-title">Dear diary</h1>
       <label class="field">How was today?</label>
       <div class="moods">${Object.entries(MOODS).map(([k, v]) => `<button type="button" data-mood="${k}" aria-pressed="${e.mood === k}">${v}</button>`).join('')}</div>
       <label class="field" for="thoughts">Thoughts</label>
@@ -200,8 +210,7 @@ async function viewJournal(date = today()) {
       <button type="button" class="ghost" id="addTodo">Add item</button>
       <label class="field">Which projects came up?</label>
       <div class="chips">${projects.map(p => `<button type="button" data-tag="${esc(p.id)}" aria-pressed="${e.tags.includes(p.id)}">${esc(p.name)}</button>`).join('')}</div>
-      <p style="margin-top:1.6rem"><button id="saveEntry">Save entry</button></p>
-    </div>`;
+      <p style="margin-top:1.6rem"><button id="saveEntry">Save entry</button></p>`);
 
   const todoEl = document.getElementById('todo');
   const drawTodo = () => {
@@ -231,16 +240,12 @@ async function viewJournal(date = today()) {
 async function viewArchive(q = '') {
   const [entries, weeks] = await Promise.all([allEntries(), list('weekly')]);
   $view.innerHTML = `
-    <div class="hero"><h1>Archive</h1><p class="muted">${entries.length} entries. Search words, projects, or moods to pull out threads.</p></div>
-    <div class="split">
-      <div class="card">
-        <input type="search" id="q" placeholder="Search every entry" value="${esc(q)}" aria-label="Search entries">
-        <div id="results"></div>
-      </div>
-      <div class="card"><h2>Weekly summaries</h2>
-        ${weeks.slice().reverse().map(w => `<a class="entry" href="#week/${esc(w)}"><span class="d">${esc(w.replace('.md', ''))}</span></a>`).join('') || '<p class="muted">The first one arrives Sunday at 7am.</p>'}
-      </div>
-    </div>`;
+    <div class="hero"><h1>Entries</h1><p class="muted">${entries.length} entries. Search words, projects, or moods to pull out threads.</p>
+      <input type="search" id="q" placeholder="Search every entry" value="${esc(q)}" aria-label="Search entries" style="max-width:32rem"></div>
+    <div id="results" class="pages"></div>
+    <section><h2>Weekly summaries</h2><div class="pages">
+      ${weeks.slice().reverse().map(w => `<a class="page" href="#week/${esc(w)}"><span class="tape"></span><span class="d">Week ${esc(w.replace('.md', '').split('-W')[1] || w)}</span><div class="small muted">${esc(w.replace('.md', ''))}</div></a>`).join('') || '<p class="muted">The first one arrives Sunday at 7am.</p>'}
+    </div></section>`;
   const qEl = document.getElementById('q'), out = document.getElementById('results');
   const draw = () => {
     const words = qEl.value.toLowerCase().split(/\s+/).filter(Boolean);
@@ -253,8 +258,10 @@ async function viewArchive(q = '') {
         if (i > 60) snip = '…' + esc(body.slice(i - 60, i + 120));
         for (const w of words) snip = snip.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => `<mark>${m}</mark>`);
       }
-      return `<a class="entry" href="#entry/${e.date}"><span class="d">${esc(prettyDate(e.date))}</span> ${e.mood ? `<span class="tag">${esc(e.mood)}</span>` : ''}
-        ${e.tags.map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}<div class="small muted">${snip}</div></a>`;
+      return `<a class="page mood-${esc(e.mood || 'calm')}" href="#entry/${e.date}"><span class="tape"></span>
+        <span class="d">${esc(prettyDate(e.date))}</span>
+        <div>${e.mood ? `<span class="tag">${esc(MOODS[e.mood] || e.mood)}</span> ` : ''}${e.tags.map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}</div>
+        <p class="small">${snip}</p></a>`;
     }).join('') || '<p class="muted">No entries match.</p>';
   };
   qEl.oninput = draw; draw();
@@ -263,59 +270,121 @@ async function viewArchive(q = '') {
 async function viewEntry(date) {
   const e = parse(await read(`journal/${date}.md`), date);
   setMood(e.mood);
-  $view.innerHTML = `
-    <div class="hero"><div class="date">${esc(prettyDate(date))}</div><h1>${esc(MOODS[e.mood] || 'Entry')}</h1></div>
-    <div class="card">
-      <h3>Thoughts</h3><p class="prose">${esc(e.thoughts) || '<span class="muted">—</span>'}</p>
-      <h3>Wins</h3><p class="prose">${esc(e.wins) || '<span class="muted">—</span>'}</p>
+  $view.innerHTML = notebook(`
+      <div class="date">${esc(prettyDate(date))}</div><h1 class="nb-title">${esc(MOODS[e.mood] || 'Entry')}</h1>
+      <h3>Thoughts</h3><p class="prose ruled">${esc(e.thoughts) || '<span class="muted">—</span>'}</p>
+      <h3>Wins</h3><p class="prose ruled">${esc(e.wins) || '<span class="muted">—</span>'}</p>
       <h3>Tomorrow</h3><ul class="checks">${e.todo.map(t => `<li><span class="${t.done ? 'done' : ''}">${esc(t.t)}</span></li>`).join('')}</ul>
-      <p><a class="btn" href="#journal/${date}">Edit</a></p>
-    </div>`;
+      <p class="row"><a class="btn" href="#journal/${date}">Edit</a><a href="#entries" class="small">All entries</a></p>`);
 }
 
 async function viewWeek(name) {
   $view.innerHTML = `<div class="hero"><h1>Week ${esc(name.replace('.md', ''))}</h1></div><div class="card prose">${esc(await read('weekly/' + name))}</div>`;
 }
 
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'project';
+const saveJSON = (path, obj, msg) => save(path, JSON.stringify(obj, null, 1) + '\n', msg);
+
+async function viewProjects() {
+  const [projects, deadlines] = await Promise.all([readJSON('data/projects.json', []), readJSON('data/deadlines.json', [])]);
+  deadlines.sort((a, b) => a.date.localeCompare(b.date));
+  const opts = sel => `<option value="">No project</option>` + projects.map(p => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  $view.innerHTML = `
+    <div class="hero"><h1>Projects</h1></div>
+    <div class="grid">${projects.map(p => `
+      <a class="card" href="#project/${esc(p.id)}">
+        <div class="kind">${esc(p.kind)}</div><h3>${esc(p.name)}</h3>
+        <p class="small">${esc(p.status)}</p>
+        ${p.next ? `<p class="small muted">Next: ${esc(p.next)}</p>` : ''}
+      </a>`).join('')}
+      <div class="card add"><h3>New project</h3>
+        <input type="text" id="newP" placeholder="Project name" aria-label="New project name">
+        <p><button id="addP">Add project</button></p></div>
+    </div>
+
+    <section><h2>Deadlines</h2>
+      <div class="card">
+        <div class="dl-row head small muted" aria-hidden="true"><span>Date</span><span>What's due</span><span>Project</span><span>Official page</span><span></span></div>
+        <div id="dlRows">${deadlines.map((d, i) => `
+          <div class="dl-row" data-i="${i}">
+            <input type="date" value="${esc(d.date)}" data-f="date" aria-label="Date">
+            <input type="text" value="${esc(d.label)}" data-f="label" aria-label="What's due">
+            <select data-f="project" aria-label="Project">${opts(d.project)}</select>
+            <input type="text" value="${esc(d.source)}" data-f="source" placeholder="URL, blank if unverified" aria-label="Official page">
+            <button class="x" data-del="${i}" aria-label="Delete ${esc(d.label)}">×</button>
+            ${d.note ? `<div class="small muted note">${esc(d.note)}</div>` : ''}
+          </div>`).join('')}</div>
+        <p class="row"><button class="ghost" id="addDl">Add deadline</button><button id="saveDl">Save deadlines</button></p>
+        <p class="small muted">A deadline with an official page link counts as checked; one without shows "unverified".</p>
+      </div>
+    </section>`;
+
+  document.getElementById('addP').onclick = async () => {
+    const name = document.getElementById('newP').value.trim();
+    if (!name) return toast('Give the project a name.');
+    let id = slug(name); while (projects.some(p => p.id === id)) id += '-2';
+    projects.push({ id, name, kind: 'Project', blurb: '', status: '', next: '', folder: '', links: [] });
+    await saveJSON('data/projects.json', projects, `Add project ${name}`);
+    location.hash = 'project/' + id;
+  };
+  const collect = () => [...document.querySelectorAll('#dlRows .dl-row')].map(row => {
+    const old = deadlines[row.dataset.i] || {};
+    const v = f => row.querySelector(`[data-f=${f}]`).value.trim();
+    const source = v('source');
+    return { date: v('date'), label: v('label'), project: v('project'), source, note: old.note || '',
+      verified: !source ? false : (old.source === source && old.verified) ? old.verified : today() };
+  }).filter(d => d.date && d.label);
+  document.getElementById('saveDl').onclick = async () => { await saveJSON('data/deadlines.json', collect(), 'Edit deadlines'); route(); };
+  document.getElementById('addDl').onclick = () => {
+    const i = deadlines.length; deadlines.push({});
+    document.getElementById('dlRows').insertAdjacentHTML('beforeend', `
+      <div class="dl-row" data-i="${i}"><input type="date" data-f="date" aria-label="Date"><input type="text" data-f="label" placeholder="What's due" aria-label="What's due">
+      <select data-f="project" aria-label="Project">${opts('')}</select><input type="text" data-f="source" placeholder="URL, blank if unverified" aria-label="Official page">
+      <button class="x" onclick="this.parentElement.remove()" aria-label="Remove row">×</button></div>`);
+    document.querySelector(`.dl-row[data-i="${i}"] input`).focus();
+  };
+  $view.querySelectorAll('#dlRows [data-del]').forEach(b => b.onclick = () => b.parentElement.remove());
+}
+
 async function viewProject(id) {
   const [projects, deadlines, entries] = await Promise.all([readJSON('data/projects.json', []), readJSON('data/deadlines.json', []), allEntries()]);
   const p = projects.find(x => x.id === id);
-  if (!p) { $view.innerHTML = '<p>That project is not in projects.json.</p>'; return; }
+  if (!p) { $view.innerHTML = '<div class="hero"><h1>Not found</h1><p><a href="#projects">Back to projects</a></p></div>'; return; }
   const mine = deadlines.filter(d => d.project === id).sort((a, b) => a.date.localeCompare(b.date));
   const mentions = entries.filter(e => e.tags.includes(id));
+  const field = (f, label, big) => `<label class="field" for="p-${f}">${label}</label>${big
+    ? `<textarea id="p-${f}">${esc(p[f])}</textarea>` : `<input type="text" id="p-${f}" value="${esc(p[f])}">`}`;
   $view.innerHTML = `
-    <div class="hero"><div class="date">${esc(p.kind)}</div><h1>${esc(p.name)}</h1><p class="quote">${esc(p.blurb)}</p></div>
+    <div class="hero"><div class="date"><a href="#projects">Projects</a> · ${esc(p.kind)}</div><h1>${esc(p.name)}</h1>${p.blurb ? `<p class="quote">${esc(p.blurb)}</p>` : ''}</div>
     <div class="split">
       <div class="card">
-        <label class="field" for="status">Where it stands</label><textarea id="status">${esc(p.status)}</textarea>
-        <label class="field" for="next">Next step</label><textarea id="next">${esc(p.next)}</textarea>
-        <p><button id="saveP">Save project</button></p>
-        ${p.folder ? `<p class="small muted">Files: New project 2/${esc(p.folder)}</p>` : ''}
-        ${p.links.map(l => `<p class="small"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a></p>`).join('')}
+        ${field('name', 'Name')}${field('kind', 'Type (Research, DECA, Study…)')}${field('blurb', 'One-line description', true)}
+        ${field('status', 'Where it stands', true)}${field('next', 'Next step', true)}${field('folder', 'Folder on your laptop')}
+        <label class="field" for="p-links">Links, one per line: label | url</label>
+        <textarea id="p-links">${esc(p.links.map(l => `${l.label} | ${l.url}`).join('\n'))}</textarea>
+        <p class="row"><button id="saveP">Save project</button><button class="ghost" id="delP">Delete project</button></p>
       </div>
       <div class="card">
         <h2>Deadlines</h2>
         ${mine.map(d => `<p><strong>${esc(d.date)}</strong> · ${esc(d.label)} ${d.verified ? '' : '<span class="tag warn">unverified</span>'}<br>
           <span class="small muted">${esc(d.note)} ${d.source ? `<a href="${esc(d.source)}" target="_blank" rel="noopener">source</a>` : ''}</span></p>`).join('') || '<p class="muted">None yet.</p>'}
-        <details><summary class="small">Add a deadline</summary>
-          <input type="date" id="dDate" aria-label="Date"><input type="text" id="dLabel" placeholder="What's due" style="margin-top:.5rem">
-          <input type="text" id="dSrc" placeholder="Official page URL (leave blank if unverified)" style="margin-top:.5rem">
-          <p><button id="addD" class="ghost">Add deadline</button></p></details>
+        <p class="small"><a href="#projects">Add or edit deadlines</a></p>
+        ${p.links.map(l => `<p class="small"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a></p>`).join('')}
       </div>
     </div>
-    <section><h2>In your journal</h2>
-      ${mentions.map(e => `<a class="entry" href="#entry/${e.date}"><span class="d">${esc(prettyDate(e.date))}</span><div class="small muted">${esc((e.thoughts || e.wins).slice(0, 200))}</div></a>`).join('') || '<p class="muted">Tag this project in a journal entry and it shows up here.</p>'}
-    </section>`;
+    <section><h2>In your journal</h2><div class="pages">
+      ${mentions.map(e => `<a class="page" href="#entry/${e.date}"><span class="tape"></span><span class="d">${esc(prettyDate(e.date))}</span><p class="small">${esc((e.thoughts || e.wins).slice(0, 200))}</p></a>`).join('') || '<p class="muted">Tag this project in a journal entry and it shows up here.</p>'}
+    </div></section>`;
   document.getElementById('saveP').onclick = async () => {
-    p.status = document.getElementById('status').value; p.next = document.getElementById('next').value;
-    await save('data/projects.json', JSON.stringify(projects, null, 1) + '\n', `Update ${p.name}`);
+    for (const f of ['name', 'kind', 'blurb', 'status', 'next', 'folder']) p[f] = document.getElementById('p-' + f).value.trim();
+    p.links = document.getElementById('p-links').value.split('\n').map(l => l.split('|').map(s => s.trim())).filter(([a, b]) => a && b).map(([label, url]) => ({ label, url }));
+    await saveJSON('data/projects.json', projects, `Update ${p.name}`); route();
   };
-  document.getElementById('addD').onclick = async () => {
-    const date = document.getElementById('dDate').value, label = document.getElementById('dLabel').value.trim(), source = document.getElementById('dSrc').value.trim();
-    if (!date || !label) return toast('Add a date and what is due.');
-    deadlines.push({ date, label, project: id, verified: source ? today() : false, source, note: '' });
-    await save('data/deadlines.json', JSON.stringify(deadlines, null, 1) + '\n', `Add deadline: ${label}`);
-    route();
+  document.getElementById('delP').onclick = async () => {
+    if (!confirm(`Delete ${p.name}? Its journal entries and deadlines stay.`)) return;
+    projects.splice(projects.indexOf(p), 1);
+    await saveJSON('data/projects.json', projects, `Delete project ${p.name}`);
+    location.hash = 'projects';
   };
 }
 
@@ -367,10 +436,10 @@ function viewUnlock() {
 async function route() {
   cache = {};
   const [page, arg] = decodeURIComponent(location.hash.slice(1) || 'home').split('/');
-  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + page));
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + ({ archive: 'entries', entry: 'entries', week: 'entries', project: 'projects' }[page] || page)));
   if (!DEMO && !token()) return viewUnlock();
   try {
-    await ({ home: viewHome, journal: viewJournal, archive: viewArchive, entry: viewEntry, week: viewWeek, project: viewProject, study: viewStudy }[page] || viewHome)(arg);
+    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy }[page] || viewHome)(arg);
     window.scrollTo(0, 0);
   } catch (e) {
     $view.innerHTML = `<div class="hero"><h1>Can't load</h1><p>${esc(e.message)}</p><p><button class="ghost" onclick="route()">Try again</button></p></div>`;
