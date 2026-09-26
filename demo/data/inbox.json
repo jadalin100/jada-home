@@ -1,0 +1,14 @@
+[
+ {
+  "name": "Demo Science Prize",
+  "url": "https://example.com",
+  "tier": "National selective",
+  "field": "science research",
+  "deadline": "2026-12-01",
+  "deadline_text": "Deadline Dec 1, 2026 (read from example.com)",
+  "submit": "A paper",
+  "cost": "free",
+  "fit": "Sample Project A",
+  "found": "2026-09-26"
+ }
+]

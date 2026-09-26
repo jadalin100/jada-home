@@ -1,0 +1,12 @@
+{
+ "id": "2026-09-20-dr-placeholder",
+ "date": "2026-09-20",
+ "name": "Dr. Placeholder",
+ "institution": "Example University",
+ "email": "placeholder@example.edu",
+ "paper": "A Sample Paper (2026)",
+ "subject": "Demo subject",
+ "body": "Hi Dr. Placeholder,\n\nDemo body with an [UNVERIFIED: gap].\n\nJada",
+ "status": "draft",
+ "sent": null
+}

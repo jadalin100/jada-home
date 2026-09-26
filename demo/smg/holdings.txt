@@ -1,0 +1,4 @@
+# Last updated: 2026-09-26
+AAA | 10 | 50.00 | STOCK # demo long
+BBB | -5 | 20.00 | STOCK # demo short
+CASH | 1000 | - | CASH # demo

@@ -200,3 +200,21 @@ select { font: inherit; color: var(--ink); background: rgba(255,255,255,.5); bor
   .dl-row.head { display: none; }
   .notebook .tabs { display: none; }
 }
+
+.holding { display: grid; grid-template-columns: 90px 200px 1fr; gap: .8rem; align-items: baseline; padding: .6rem 0; border-bottom: 1px solid var(--line); }
+.holding:last-child { border: 0; }
+.holding .d, details .d { font-family: Italiana, serif; font-size: 1.4rem; }
+@media (max-width: 640px) { .holding { grid-template-columns: 70px 1fr; } .holding .small { grid-column: 1 / -1; } }
+.draft textarea.big { min-height: 20rem; }
+
+body[data-mood="excited"]  { --b1: var(--blush); --b2: #fbe0a0; --b3: var(--peach); }
+body[data-mood="grateful"] { --b1: var(--peach); --b2: var(--lilac); --b3: var(--blush); }
+body[data-mood="focused"]  { --b1: var(--sky); --b2: var(--lilac); --b3: var(--sky); }
+body[data-mood="tired"]    { --b1: #d9d5e6; --b2: var(--lilac); --b3: #e8e2da; }
+body[data-mood="stressed"] { --b1: var(--blush); --b2: #d9d5e6; --b3: var(--lilac); }
+body[data-mood="anxious"]  { --b1: var(--lilac); --b2: #d9d5e6; --b3: var(--sky); }
+body[data-mood="sad"]      { --b1: var(--sky); --b2: #d9d5e6; --b3: var(--sky); }
+.page.mood-excited { border-left-color: #fbe0a0; }
+.page.mood-grateful { border-left-color: var(--peach); }
+.page.mood-focused, .page.mood-sad { border-left-color: var(--sky); }
+.page.mood-tired, .page.mood-anxious, .page.mood-stressed { border-left-color: var(--lilac); }

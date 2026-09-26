@@ -4,7 +4,9 @@
 
 const DEMO = new URLSearchParams(location.search).has('demo');
 const REPO = localStorage.getItem('repo') || 'jadalin100/jada-home-data';
-const MOODS = { sunny: 'Sunny', calm: 'Calm', busy: 'Busy', low: 'Low', proud: 'Proud' };
+const MOODS = { sunny: 'Happy', excited: 'Excited', proud: 'Proud', grateful: 'Grateful', calm: 'Calm', focused: 'Focused',
+  busy: 'Busy', tired: 'Tired', stressed: 'Stressed', anxious: 'Anxious', low: 'Low', sad: 'Sad' };
+const moodName = m => MOODS[m] || m;
 const $view = document.getElementById('view');
 const shas = {};           // path -> sha, needed to update a file on GitHub
 const memFiles = {};       // demo-mode writes
@@ -61,11 +63,18 @@ async function write(path, text, msg) {
   const j = await api(path, { method: 'PUT', body: JSON.stringify({ message: msg, content: b64encode(text), sha: shas[path] }) });
   shas[path] = j.content.sha;
 }
+async function remove(path, msg) {
+  delete cache[path];
+  if (DEMO) { delete memFiles[path]; return; }
+  if (!(path in shas)) await api(path).then(j => { if (j) shas[path] = j.sha; });
+  await api(path, { method: 'DELETE', body: JSON.stringify({ message: msg, sha: shas[path] }) });
+  delete shas[path];
+}
 const writeJSON = (path, obj, msg) => write(path, JSON.stringify(obj, null, 1) + '\n', msg);
-async function list(dir) {
+async function list(dir, ext = '.md') {
   if (DEMO) { const idx = await (await fetch('demo/index.json')).json(); return (idx[dir] || []).sort(); }
   const j = await api(dir);
-  return (j || []).map(f => f.name).filter(n => n.endsWith('.md')).sort();
+  return (j || []).map(f => f.name).filter(n => n.endsWith(ext)).sort();
 }
 
 // ---------- journal format ----------
@@ -100,6 +109,7 @@ const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good 
 
 async function viewHome() {
   const t = today();
+  const [inbox, projects] = await Promise.all([readJSON('data/inbox.json', []), readJSON('data/projects.json', [])]);
   const [quoteText, todos, deadlines, yText, routineNames, study] = await Promise.all([
     read(`quotes/${t}.md`), readJSON('data/todos.json', []), readJSON('data/deadlines.json', []),
     read(`journal/${addDays(t, -1)}.md`), list('routines'), readJSON('data/study.json', { viola: [] }),
@@ -137,6 +147,18 @@ async function viewHome() {
       </div>
     </div>
 
+    ${inbox.length ? `<section><h2>Found by competition scout</h2><div class="grid">${inbox.map((c, i) => `
+      <div class="card">
+        <div class="kind">${esc(c.tier || '')} · ${esc(c.field || '')}</div>
+        <h3><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.name)} ↗</a></h3>
+        <p class="small">${esc(c.deadline_text || '')}</p>
+        <p class="small muted">${esc(c.submit || '')}${c.cost ? ' · ' + esc(c.cost) : ''}</p>
+        ${c.fit ? `<p class="small">Could fit: ${esc(c.fit)}</p>` : ''}
+        <label class="field" for="ibd${i}">Deadline</label><input type="date" id="ibd${i}" value="${esc(c.deadline || '')}">
+        <label class="field" for="ibp${i}">Project</label><select id="ibp${i}"><option value="">No project</option>${projects.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select>
+        <p class="row"><button data-approve="${i}">Add to deadlines</button><button class="ghost" data-dismiss="${i}">Dismiss</button></p>
+      </div>`).join('')}</div></section>` : ''}
+
     <section>
       <h2>Coming up</h2>
       <div class="deadlines">${soon.map(d => {
@@ -159,6 +181,18 @@ async function viewHome() {
     y.todo[cb.dataset.i].done = cb.checked;
     cb.nextElementSibling.classList.toggle('done', cb.checked);
     await save(`journal/${y.date}.md`, serialize(y), `Check off to-do (${y.date})`);
+  });
+  const saveInbox = msg => save('data/inbox.json', JSON.stringify(inbox, null, 1) + '\n', msg);
+  $view.querySelectorAll('[data-approve]').forEach(b => b.onclick = async () => {
+    const i = +b.dataset.approve, c = inbox[i], date = document.getElementById('ibd' + i).value;
+    if (!date) return toast('Pick the deadline date first.');
+    deadlines.push({ date, label: c.name, project: document.getElementById('ibp' + i).value, source: c.url,
+      verified: c.found || today(), note: [c.deadline_text, c.submit, c.cost].filter(Boolean).join(' · ') });
+    await save('data/deadlines.json', JSON.stringify(deadlines, null, 1) + '\n', `Add ${c.name} from competition scout`);
+    inbox.splice(i, 1); await saveInbox(`Approve ${c.name}`); route();
+  });
+  $view.querySelectorAll('[data-dismiss]').forEach(b => b.onclick = async () => {
+    const c = inbox.splice(+b.dataset.dismiss, 1)[0]; await saveInbox(`Dismiss ${c.name}`); route();
   });
   const saveTodos = async msg => { await save('data/todos.json', JSON.stringify(todos, null, 1) + '\n', msg); route(); };
   $view.querySelectorAll('[data-a]').forEach(cb => cb.onchange = () => { todos[cb.dataset.a].done = cb.checked; saveTodos('Check off to-do'); });
@@ -201,6 +235,7 @@ async function viewJournal(date = today()) {
       <div class="date">${esc(prettyDate(date))}</div><h1 class="nb-title">Dear diary</h1>
       <label class="field">How was today?</label>
       <div class="moods">${Object.entries(MOODS).map(([k, v]) => `<button type="button" data-mood="${k}" aria-pressed="${e.mood === k}">${v}</button>`).join('')}</div>
+      <input type="text" id="moodOwn" placeholder="Or in your own words…" value="${MOODS[e.mood] ? '' : esc(e.mood)}" aria-label="Your own mood" style="margin-top:.6rem;max-width:22rem">
       <label class="field" for="thoughts">Thoughts</label>
       <textarea id="thoughts" class="big" placeholder="What happened, what you noticed, what's on your mind.">${esc(e.thoughts)}</textarea>
       <label class="field" for="wins">Wins today</label>
@@ -222,10 +257,15 @@ async function viewJournal(date = today()) {
   };
   drawTodo();
   document.getElementById('addTodo').onclick = () => { e.todo.push({ t: '', done: false }); drawTodo(); };
-  $view.querySelectorAll('[data-mood]').forEach(b => b.onclick = () => {
+  $view.querySelectorAll('.moods [data-mood]').forEach(b => b.onclick = () => {
     e.mood = e.mood === b.dataset.mood ? '' : b.dataset.mood; setMood(e.mood);
-    $view.querySelectorAll('[data-mood]').forEach(x => x.setAttribute('aria-pressed', x.dataset.mood === e.mood));
+    $view.querySelectorAll('.moods [data-mood]').forEach(x => x.setAttribute('aria-pressed', x.dataset.mood === e.mood));
+    document.getElementById('moodOwn').value = '';
   });
+  document.getElementById('moodOwn').oninput = ev => {
+    e.mood = ev.target.value.replace(/[\n:,]+/g, ' ').replace(/\s+/g, ' ').trim(); setMood(e.mood);
+    $view.querySelectorAll('.moods [data-mood]').forEach(x => x.setAttribute('aria-pressed', false));
+  };
   $view.querySelectorAll('[data-tag]').forEach(b => b.onclick = () => {
     const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on);
     e.tags = on ? [...e.tags, b.dataset.tag] : e.tags.filter(x => x !== b.dataset.tag);
@@ -258,9 +298,9 @@ async function viewArchive(q = '') {
         if (i > 60) snip = '…' + esc(body.slice(i - 60, i + 120));
         for (const w of words) snip = snip.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => `<mark>${m}</mark>`);
       }
-      return `<a class="page mood-${esc(e.mood || 'calm')}" href="#entry/${e.date}"><span class="tape"></span>
+      return `<a class="page mood-${MOODS[e.mood] ? e.mood : 'calm'}" href="#entry/${e.date}"><span class="tape"></span>
         <span class="d">${esc(prettyDate(e.date))}</span>
-        <div>${e.mood ? `<span class="tag">${esc(MOODS[e.mood] || e.mood)}</span> ` : ''}${e.tags.map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}</div>
+        <div>${e.mood ? `<span class="tag">${esc(moodName(e.mood))}</span> ` : ''}${e.tags.map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}</div>
         <p class="small">${snip}</p></a>`;
     }).join('') || '<p class="muted">No entries match.</p>';
   };
@@ -271,7 +311,7 @@ async function viewEntry(date) {
   const e = parse(await read(`journal/${date}.md`), date);
   setMood(e.mood);
   $view.innerHTML = notebook(`
-      <div class="date">${esc(prettyDate(date))}</div><h1 class="nb-title">${esc(MOODS[e.mood] || 'Entry')}</h1>
+      <div class="date">${esc(prettyDate(date))}</div><h1 class="nb-title">${esc(moodName(e.mood) || 'Entry')}</h1>
       <h3>Thoughts</h3><p class="prose ruled">${esc(e.thoughts) || '<span class="muted">—</span>'}</p>
       <h3>Wins</h3><p class="prose ruled">${esc(e.wins) || '<span class="muted">—</span>'}</p>
       <h3>Tomorrow</h3><ul class="checks">${e.todo.map(t => `<li><span class="${t.done ? 'done' : ''}">${esc(t.t)}</span></li>`).join('')}</ul>
@@ -406,7 +446,9 @@ async function viewStudy() {
       <div class="dots" aria-label="Last 21 days">${last21.map(d => `<span class="${study.viola.includes(d) ? 'on' : ''}" title="${d}"></span>`).join('')}</div>
     </div>
     <section><h2>USABO</h2><div class="grid">${block('usabo', 'Open Exam, Feb 3 2027', study.usabo)}</div></section>
-    <section><h2>Science Olympiad</h2><div class="grid">${Object.entries(study.scioly).map(([ev, items]) => block('scioly:' + ev, ev, items)).join('')}</div></section>`;
+    <section><h2>Science Olympiad</h2><div class="grid">${Object.entries(study.scioly).map(([ev, items]) => block('scioly:' + ev, ev, items)).join('')}</div></section>
+    <section><h2>Helpful sites</h2><div class="grid">${Object.entries(study.resources || {}).map(([k, links]) => `
+      <div class="card"><h3>${esc(k)}</h3>${links.map(l => `<p class="small"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a></p>`).join('')}</div>`).join('')}</div></section>`;
 
   const listFor = key => key === 'usabo' ? study.usabo : study.scioly[key.slice(7)];
   const persist = msg => save('data/study.json', JSON.stringify(study, null, 1) + '\n', msg);
@@ -418,6 +460,82 @@ async function viewStudy() {
     listFor(inp.dataset.add).push({ t: inp.value.trim(), done: false }); await persist('Add study topic'); route();
   });
   document.getElementById('viola').onclick = async () => { study.viola.push(t); await persist(`Viola practice ${t}`); route(); };
+}
+
+// ---------- DECA Stock Market Game (copied from ~/deca-smg each morning by the 7am agent) ----------
+async function viewSMG() {
+  const [holdings, names] = await Promise.all([read('smg/holdings.txt'), list('smg/briefs', '.txt')]);
+  const rows = (holdings || '').split('\n').filter(l => l.trim() && !l.startsWith('#')).map(l => {
+    const [main, note = ''] = l.split(/#(.*)/s);
+    const [ticker, shares, cost, cls] = main.split('|').map(s => s.trim());
+    return { ticker, shares, cost, cls, note: note.trim() };
+  });
+  const updated = ((holdings || '').match(/Last updated:\s*(\S+)/) || [])[1];
+  const latest = names.at(-1);
+  const briefs = await Promise.all(names.slice(-14).reverse().map(async n => [n, await read('smg/briefs/' + n)]));
+  $view.innerHTML = `
+    <div class="hero"><div class="date">DECA Stock Market Game</div><h1>SMG</h1>
+      <p class="muted">${updated ? `Holdings last updated ${esc(updated)}.` : 'Holdings arrive with the 7am run.'}</p></div>
+    <div class="card"><h2>Holdings</h2>
+      ${rows.map(r => `<div class="holding"><span class="d">${esc(r.ticker)}</span>
+        <span>${esc(r.cls === 'CASH' ? '$' + Number(r.shares).toLocaleString() : r.shares + ' sh' + (r.cost && r.cost !== '-' ? ' @ $' + r.cost : ''))}
+        ${Number(r.shares) < 0 ? '<span class="tag">short</span>' : ''}</span>
+        <span class="small muted">${esc(r.note)}</span></div>`).join('') || '<p class="muted">No holdings yet.</p>'}
+    </div>
+    <section><h2>Briefs</h2>
+      ${briefs.map(([n, t], i) => `<details class="card" ${i === 0 ? 'open' : ''} style="margin-bottom:1rem">
+        <summary><span class="d">${esc(prettyDate(n.slice(0, 10)))}</span>${n === latest ? ' <span class="tag">latest</span>' : ''}</summary>
+        <div class="prose small">${esc(t)}</div></details>`).join('') || '<p class="muted">Briefs arrive with the 7am run.</p>'}
+    </section>`;
+}
+
+// ---------- email drafts (written by prof-scout into drafts/*.json) ----------
+async function viewEmails() {
+  const names = await list('drafts', '.json');
+  const drafts = (await Promise.all(names.map(async n => ({ path: 'drafts/' + n, ...JSON.parse(await read('drafts/' + n)) }))))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const open = drafts.filter(d => d.status !== 'sent'), sent = drafts.filter(d => d.status === 'sent');
+  const card = (d, i) => {
+    const gaps = (d.body.match(/\[[^\]]*\]/g) || []).length;
+    return `<div class="card draft" data-i="${i}">
+      <div class="kind">${esc(d.date)} · ${esc(d.institution)}</div>
+      <h3>${esc(d.name)}</h3>
+      <p class="small">To: <strong>${esc(d.email)}</strong></p>
+      ${d.paper ? `<p class="small muted">${esc(d.paper)}</p>` : ''}
+      ${gaps ? `<p class="small"><span class="tag warn">${gaps} unfilled [bracket] ${gaps === 1 ? 'spot' : 'spots'}</span> Fix before sending.</p>` : ''}
+      <details><summary class="small">Read and edit</summary>
+        <label class="field">Subject</label><input type="text" data-f="subject" value="${esc(d.subject)}">
+        <label class="field">Email</label><textarea data-f="body" class="big">${esc(d.body)}</textarea>
+        <p><button class="ghost" data-act="save">Save edits</button></p>
+      </details>
+      <p class="row">
+        <button data-act="gmail">Open in Gmail</button>
+        <button class="ghost" data-act="mail">Mail app</button>
+        <button class="ghost" data-act="copy">Copy</button>
+      </p>
+      <p class="row small"><button class="ghost" data-act="sent">I sent it</button><button class="x" data-act="del" aria-label="Delete draft">Delete</button></p>
+    </div>`;
+  };
+  $view.innerHTML = `
+    <div class="hero"><h1>Emails</h1><p class="muted">${open.length} professor drafts from prof-scout. Open one in Gmail, read it, then press send there.</p></div>
+    <div class="grid">${open.map(d => card(d, drafts.indexOf(d))).join('') || '<p class="muted">No drafts right now. Prof-scout adds new ones on weekday mornings.</p>'}</div>
+    ${sent.length ? `<section><h2>Sent</h2>${sent.map(d => `<p class="small">${esc(d.sent || '')} · <strong>${esc(d.name)}</strong> · ${esc(d.email)}</p>`).join('')}</section>` : ''}`;
+
+  $view.querySelectorAll('.draft').forEach(el => {
+    const d = drafts[el.dataset.i];
+    const cur = () => ({ subject: el.querySelector('[data-f=subject]').value, body: el.querySelector('[data-f=body]').value });
+    const persist = msg => { const { path, ...rest } = d; return save(path, JSON.stringify(rest, null, 1) + '\n', msg); };
+    const ok = () => !/\[[^\]]*\]/.test(cur().body) || confirm('This draft still has an unfilled [bracket] spot. Open it anyway?');
+    el.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => {
+      const { subject, body } = cur(), act = b.dataset.act;
+      if (act === 'save') { Object.assign(d, { subject, body }); await persist(`Edit draft to ${d.name}`); }
+      if (act === 'gmail' && ok()) window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(d.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank', 'noopener');
+      if (act === 'mail' && ok()) location.href = `mailto:${d.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      if (act === 'copy') { await navigator.clipboard.writeText(`To: ${d.email}\nSubject: ${subject}\n\n${body}`); toast('Copied'); }
+      if (act === 'sent' && confirm(`Mark the email to ${d.name} as sent?`)) { Object.assign(d, { subject, body, status: 'sent', sent: today() }); await persist(`Sent: ${d.name}`); route(); }
+      if (act === 'del' && confirm(`Delete the draft to ${d.name}?`)) { await remove(d.path, `Delete draft to ${d.name}`); route(); }
+    });
+  });
 }
 
 // ---------- password unlock ----------
@@ -505,7 +623,7 @@ async function route() {
   if (page === 'lock') { lock(); location.hash = 'home'; return; }
   if (!DEMO && !token()) return viewUnlock();
   try {
-    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy }[page] || viewHome)(arg);
+    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG }[page] || viewHome)(arg);
     window.scrollTo(0, 0);
   } catch (e) {
     $view.innerHTML = `<div class="hero"><h1>Can't load</h1><p>${esc(e.message)}</p><p><button class="ghost" onclick="route()">Try again</button></p></div>`;
