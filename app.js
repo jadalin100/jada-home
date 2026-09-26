@@ -144,6 +144,9 @@ async function viewHome() {
         <div class="big-num">${streak(study.viola)}</div>
         <p class="muted small">day streak</p>
         <button id="viola" class="ghost" ${study.viola.includes(t) ? 'disabled' : ''}>${study.viola.includes(t) ? 'Practiced today' : 'Log practice'}</button>
+        <h2 style="margin-top:1.6rem">Just for fun</h2>
+        <p><a class="fun" href="https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=1" target="_blank" rel="noopener">♈ Aries horoscope ↗</a></p>
+        <p><a class="fun" href="https://www.nytimes.com/games/wordle/index.html" target="_blank" rel="noopener">🟩 Today's Wordle ↗</a></p>
       </div>
     </div>
 
@@ -220,8 +223,11 @@ async function save(path, text, msg) {
 // Notebook page: spiral rings, washi tape, binder clip, colored tabs, on a doodle backdrop.
 const CLIP = `<svg class="clip" viewBox="0 0 60 64" aria-hidden="true"><path d="M8 26h44l-6 34H14z" fill="var(--ink)"/>
   <path d="M18 28 L14 4 Q14 0 18 0 L22 0 Q26 0 26 4 L24 28 M42 28 L36 4 Q36 0 40 0 L44 0 Q48 0 46 4 L40 28" fill="none" stroke="#b8b3c4" stroke-width="3"/></svg>`;
-const notebook = (inner, extra = '') => `
-  <div class="doodle ${extra}"><article class="notebook">
+// A different pastel each day, same color all day. Days since 2000-01-01 picks it.
+const DAY_COLORS = ['#c7c1f3', '#f6c3d6', '#f7d3b2', '#c6dcf4', '#fbe0a0', '#cfe6d3', '#e3c9ef'];
+const dayColor = (iso = today()) => DAY_COLORS[Math.round((new Date(iso + 'T12:00') - new Date('2000-01-01T12:00')) / 864e5) % DAY_COLORS.length];
+const notebook = (inner, extra = '', iso) => `
+  <div class="doodle ${extra}" style="--day:${dayColor(iso)}"><article class="notebook">
     <span class="tape"></span>${CLIP}<div class="tabs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     ${inner}
   </article></div>`;
@@ -245,7 +251,7 @@ async function viewJournal(date = today()) {
       <button type="button" class="ghost" id="addTodo">Add item</button>
       <label class="field">Which projects came up?</label>
       <div class="chips">${projects.map(p => `<button type="button" data-tag="${esc(p.id)}" aria-pressed="${e.tags.includes(p.id)}">${esc(p.name)}</button>`).join('')}</div>
-      <p style="margin-top:1.6rem"><button id="saveEntry">Save entry</button></p>`);
+      <p style="margin-top:1.6rem"><button id="saveEntry">Save entry</button></p>`, '', date);
 
   const todoEl = document.getElementById('todo');
   const drawTodo = () => {
@@ -298,7 +304,7 @@ async function viewArchive(q = '') {
         if (i > 60) snip = '…' + esc(body.slice(i - 60, i + 120));
         for (const w of words) snip = snip.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => `<mark>${m}</mark>`);
       }
-      return `<a class="page mood-${MOODS[e.mood] ? e.mood : 'calm'}" href="#entry/${e.date}"><span class="tape"></span>
+      return `<a class="page" style="border-left-color:${dayColor(e.date)}" href="#entry/${e.date}"><span class="tape"></span>
         <span class="d">${esc(prettyDate(e.date))}</span>
         <div>${e.mood ? `<span class="tag">${esc(moodName(e.mood))}</span> ` : ''}${e.tags.map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}</div>
         <p class="small">${snip}</p></a>`;
@@ -315,7 +321,7 @@ async function viewEntry(date) {
       <h3>Thoughts</h3><p class="prose ruled">${esc(e.thoughts) || '<span class="muted">—</span>'}</p>
       <h3>Wins</h3><p class="prose ruled">${esc(e.wins) || '<span class="muted">—</span>'}</p>
       <h3>Tomorrow</h3><ul class="checks">${e.todo.map(t => `<li><span class="${t.done ? 'done' : ''}">${esc(t.t)}</span></li>`).join('')}</ul>
-      <p class="row"><a class="btn" href="#journal/${date}">Edit</a><a href="#entries" class="small">All entries</a></p>`);
+      <p class="row"><a class="btn" href="#journal/${date}">Edit</a><a href="#entries" class="small">All entries</a></p>`, '', date);
 }
 
 async function viewWeek(name) {
