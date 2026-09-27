@@ -1,33 +1,48 @@
 {
- "usabo": [
+ "tracks": [
   {
-   "t": "Demo topic 1",
-   "done": true
+   "id": "demo-track",
+   "name": "Demo Track",
+   "blurb": "Placeholder study track.",
+   "checklists": {
+    "Demo list": [
+     {
+      "t": "Demo topic 1",
+      "done": true
+     },
+     {
+      "t": "Demo topic 2",
+      "done": false
+     }
+    ]
+   },
+   "resources": {
+    "Demo": [
+     {
+      "label": "Example",
+      "url": "https://example.com"
+     }
+    ]
+   }
   },
   {
-   "t": "Demo topic 2",
-   "done": false
+   "id": "demo-two",
+   "name": "Demo Two",
+   "blurb": "",
+   "checklists": {
+    "Demo Event": [
+     {
+      "t": "Demo topic",
+      "done": false
+     }
+    ]
+   },
+   "resources": {}
   }
  ],
- "scioly": {
-  "Demo Event": [
-   {
-    "t": "Demo topic",
-    "done": false
-   }
-  ]
- },
  "viola": [
   "2026-09-25",
   "2026-09-24",
   "2026-09-23"
- ],
- "resources": {
-  "Demo": [
-   {
-    "label": "Example",
-    "url": "https://example.com"
-   }
-  ]
- }
+ ]
 }

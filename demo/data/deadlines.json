@@ -14,5 +14,13 @@
   "verified": false,
   "source": "",
   "note": "placeholder"
+ },
+ {
+  "date": "2026-11-01",
+  "label": "Demo track deadline",
+  "project": "demo-track",
+  "verified": false,
+  "source": "",
+  "note": "demo"
  }
 ]

@@ -231,3 +231,8 @@ a.fun:hover { text-decoration: underline; }
 .logday { padding: .7rem 0; border-top: 1px solid var(--line); }
 .logday .d { font-family: Italiana, serif; font-size: 1.2rem; }
 .logday p { margin: .2rem 0 0; }
+
+a.ghostlink { background: transparent; color: var(--ink); border: 1px solid var(--line); text-decoration: none; padding: .45rem .9rem; letter-spacing: .04em; }
+.track { scroll-margin-top: 1rem; }
+.club .clubname { font-family: Italiana, serif; font-size: 1.45rem; border: 0; background: transparent; padding: 0; text-transform: uppercase; }
+.club .checks li { align-items: center; }

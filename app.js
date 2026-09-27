@@ -336,11 +336,13 @@ const logPath = id => `logs/${id}.json`;
 const saveLog = (id, log, msg) => save(logPath(id), JSON.stringify(log, null, 1) + '\n', msg);
 
 async function viewProjects() {
-  const [projects, deadlines] = await Promise.all([readJSON('data/projects.json', []), readJSON('data/deadlines.json', [])]);
+  const [projects, deadlines, study, clubs] = await Promise.all([readJSON('data/projects.json', []), readJSON('data/deadlines.json', []),
+    readJSON('data/study.json', { tracks: [] }), readJSON('data/clubs.json', [])]);
   const t = today();
   const logs = await Promise.all(projects.map(p => readJSON(logPath(p.id), {})));
   deadlines.sort((a, b) => a.date.localeCompare(b.date));
-  const opts = sel => `<option value="">No project</option>` + projects.map(p => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  const group = (label, xs, sel) => `<optgroup label="${label}">` + xs.map(p => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('') + '</optgroup>';
+  const opts = sel => `<option value="">None</option>` + group('Projects', projects, sel) + group('Study', study.tracks, sel) + group('Clubs', clubs, sel);
   $view.innerHTML = `
     <div class="hero"><h1>Projects</h1></div>
     <div class="card">
@@ -367,7 +369,7 @@ async function viewProjects() {
 
     <section><h2>Deadlines</h2>
       <div class="card">
-        <div class="dl-row head small muted" aria-hidden="true"><span>Date</span><span>What's due</span><span>Project</span><span>Official page</span><span></span></div>
+        <div class="dl-row head small muted" aria-hidden="true"><span>Date</span><span>What's due</span><span>For</span><span>Official page</span><span></span></div>
         <div id="dlRows">${deadlines.map((d, i) => `
           <div class="dl-row" data-i="${i}">
             <input type="date" value="${esc(d.date)}" data-f="date" aria-label="Date">
@@ -478,37 +480,95 @@ async function viewProject(id) {
 }
 
 async function viewStudy() {
-  const study = await readJSON('data/study.json', { usabo: [], scioly: {}, viola: [] });
+  const [study, deadlines] = await Promise.all([readJSON('data/study.json', { tracks: [], viola: [] }), readJSON('data/deadlines.json', [])]);
   const t = today();
   const last21 = Array.from({ length: 21 }, (_, i) => addDays(t, i - 20));
-  const block = (key, title, items) => `
+  const block = (ti, title, items) => `
     <div class="card"><h3>${esc(title)}</h3>
       <p class="small muted">${items.filter(i => i.done).length} of ${items.length} done</p>
-      <ul class="checks">${items.map((it, i) => `<li><input type="checkbox" id="${key}-${i}" data-key="${esc(key)}" data-i="${i}" ${it.done ? 'checked' : ''}><label for="${key}-${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label></li>`).join('')}</ul>
-      <div class="row"><input type="text" placeholder="Add a topic" data-add="${esc(key)}" aria-label="Add topic to ${esc(title)}"></div>
+      <ul class="checks">${items.map((it, i) => `<li><input type="checkbox" id="c${ti}-${esc(title)}-${i}" data-t="${ti}" data-l="${esc(title)}" data-i="${i}" ${it.done ? 'checked' : ''}><label for="c${ti}-${esc(title)}-${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label>
+        <button class="x" data-rm="${ti}" data-l="${esc(title)}" data-i="${i}" aria-label="Remove ${esc(it.t)}">×</button></li>`).join('')}</ul>
+      <div class="row"><input type="text" placeholder="Add a topic" data-add="${ti}" data-l="${esc(title)}" aria-label="Add topic to ${esc(title)}"></div>
     </div>`;
+  const links = res => Object.entries(res || {}).map(([k, ls]) => `
+    <div class="card"><h3>${esc(k)}</h3>${ls.map(l => `<p class="small"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a></p>`).join('')}</div>`).join('');
   $view.innerHTML = `
-    <div class="hero"><h1>Study</h1></div>
+    <div class="hero"><h1>Study</h1>
+      <div class="chips" style="margin-top:1rem">${study.tracks.map(tr => `<a class="btn ghostlink" href="#study" data-jump="${esc(tr.id)}">${esc(tr.name)}</a>`).join('')}</div></div>
     <div class="card"><h2>Viola</h2>
       <div class="row"><span class="big-num">${streak(study.viola)}</span><span class="muted">day streak</span>
       <button id="viola" ${study.viola.includes(t) ? 'disabled' : ''}>${study.viola.includes(t) ? 'Practiced today' : 'Log practice'}</button></div>
       <div class="dots" aria-label="Last 21 days">${last21.map(d => `<span class="${study.viola.includes(d) ? 'on' : ''}" title="${d}"></span>`).join('')}</div>
     </div>
-    <section><h2>USABO</h2><div class="grid">${block('usabo', 'Open Exam, Feb 3 2027', study.usabo)}</div></section>
-    <section><h2>Science Olympiad</h2><div class="grid">${Object.entries(study.scioly).map(([ev, items]) => block('scioly:' + ev, ev, items)).join('')}</div></section>
-    <section><h2>Helpful sites</h2><div class="grid">${Object.entries(study.resources || {}).map(([k, links]) => `
-      <div class="card"><h3>${esc(k)}</h3>${links.map(l => `<p class="small"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a></p>`).join('')}</div>`).join('')}</div></section>`;
+    ${study.tracks.map((tr, ti) => {
+      const dls = deadlines.filter(d => d.project === tr.id && daysUntil(d.date) >= 0).sort((a, b) => a.date.localeCompare(b.date));
+      return `<section id="track-${esc(tr.id)}" class="track"><h2>${esc(tr.name)}</h2>
+        ${tr.blurb ? `<p class="muted">${esc(tr.blurb)}</p>` : ''}
+        ${dls.length ? `<div class="deadlines">${dls.map(d => `<div class="card dl ${daysUntil(d.date) <= 7 ? 'soon' : ''}"><div class="days">${daysUntil(d.date)}</div>
+          <div class="small muted">days · ${esc(d.date)}</div><p>${esc(d.label)}</p>${d.note ? `<p class="small muted">${esc(d.note)}</p>` : ''}</div>`).join('')}</div>` : ''}
+        <div class="grid" style="margin-top:1rem">${Object.entries(tr.checklists).map(([name, items]) => block(ti, name, items)).join('')}
+          <div class="card add"><h3>New checklist</h3><input type="text" placeholder="e.g. an event name" data-newlist="${ti}" aria-label="New checklist for ${esc(tr.name)}"></div></div>
+        <h3 style="margin-top:1.4rem">Helpful sites</h3>
+        <div class="grid" style="margin-top:.6rem">${links(tr.resources) || '<p class="muted small">None yet.</p>'}</div>
+      </section>`;
+    }).join('')}`;
 
-  const listFor = key => key === 'usabo' ? study.usabo : study.scioly[key.slice(7)];
   const persist = msg => save('data/study.json', JSON.stringify(study, null, 1) + '\n', msg);
-  $view.querySelectorAll('.checks input').forEach(cb => cb.onchange = async () => {
-    listFor(cb.dataset.key)[cb.dataset.i].done = cb.checked; await persist('Study checklist'); route();
-  });
+  const listOf = el => study.tracks[el.dataset.t ?? el.dataset.add ?? el.dataset.rm].checklists[el.dataset.l];
+  $view.querySelectorAll('[data-jump]').forEach(a => a.onclick = ev => { ev.preventDefault(); document.getElementById('track-' + a.dataset.jump).scrollIntoView({ behavior: 'smooth' }); });
+  $view.querySelectorAll('.checks input[data-t]').forEach(cb => cb.onchange = async () => { listOf(cb)[cb.dataset.i].done = cb.checked; await persist('Study checklist'); route(); });
+  $view.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { listOf(b).splice(b.dataset.i, 1); await persist('Remove study topic'); route(); });
   $view.querySelectorAll('[data-add]').forEach(inp => inp.onkeydown = async ev => {
     if (ev.key !== 'Enter' || !inp.value.trim()) return;
-    listFor(inp.dataset.add).push({ t: inp.value.trim(), done: false }); await persist('Add study topic'); route();
+    listOf(inp).push({ t: inp.value.trim(), done: false }); await persist('Add study topic'); route();
+  });
+  $view.querySelectorAll('[data-newlist]').forEach(inp => inp.onkeydown = async ev => {
+    const name = inp.value.trim(), lists = study.tracks[inp.dataset.newlist].checklists;
+    if (ev.key !== 'Enter' || !name) return;
+    if (lists[name]) return toast('That checklist already exists.');
+    lists[name] = []; await persist(`New checklist ${name}`); route();
   });
   document.getElementById('viola').onclick = async () => { study.viola.push(t); await persist(`Viola practice ${t}`); route(); };
+}
+
+// ---------- clubs ----------
+async function viewClubs() {
+  const clubs = await readJSON('data/clubs.json', []);
+  $view.innerHTML = `
+    <div class="hero"><h1>Clubs</h1><p class="muted">${clubs.length} boards.</p></div>
+    <div class="grid clubs">${clubs.map((c, i) => `
+      <div class="card club" data-i="${i}">
+        <input type="text" class="clubname" data-f="name" value="${esc(c.name)}" aria-label="Club name">
+        <label class="field">Your role</label><input type="text" data-f="role" value="${esc(c.role)}" placeholder="Not set">
+        <label class="field">To-do</label>
+        <ul class="checks">${c.todo.map((it, j) => `<li><input type="checkbox" id="cl${i}-${j}" data-todo="${j}" ${it.done ? 'checked' : ''}><label for="cl${i}-${j}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label>
+          <button class="x" data-rmtodo="${j}" aria-label="Remove ${esc(it.t)}">×</button></li>`).join('')}</ul>
+        <input type="text" data-addtodo placeholder="Add a to-do and press Enter" aria-label="Add to-do for ${esc(c.name)}">
+        <label class="field">Notes (meetings, events, money)</label><textarea data-f="notes" rows="3">${esc(c.notes)}</textarea>
+        <label class="field">Links, one per line: label | url</label><textarea data-f="links" rows="2">${esc(c.links.map(l => `${l.label} | ${l.url}`).join('\n'))}</textarea>
+        <p class="row"><button data-save>Save</button><button class="x" data-del>Remove club</button></p>
+      </div>`).join('')}
+      <div class="card add"><h3>New club</h3><input type="text" id="newClub" placeholder="Club name" aria-label="New club name"><p><button id="addClub">Add club</button></p></div>
+    </div>`;
+  const persist = msg => save('data/clubs.json', JSON.stringify(clubs, null, 1) + '\n', msg);
+  $view.querySelectorAll('.club').forEach(el => {
+    const c = clubs[el.dataset.i];
+    const grab = () => {
+      for (const f of ['name', 'role', 'notes']) c[f] = el.querySelector(`[data-f=${f}]`).value.trim();
+      c.links = el.querySelector('[data-f=links]').value.split('\n').map(l => l.split('|').map(s => s.trim())).filter(([a, b]) => a && b).map(([label, url]) => ({ label, url }));
+    };
+    el.querySelector('[data-save]').onclick = async () => { grab(); await persist(`Update ${c.name}`); };
+    el.querySelectorAll('[data-todo]').forEach(cb => cb.onchange = async () => { grab(); c.todo[cb.dataset.todo].done = cb.checked; await persist(`${c.name} to-do`); route(); });
+    el.querySelectorAll('[data-rmtodo]').forEach(b => b.onclick = async () => { grab(); c.todo.splice(b.dataset.rmtodo, 1); await persist(`${c.name} to-do`); route(); });
+    const add = el.querySelector('[data-addtodo]');
+    add.onkeydown = async ev => { if (ev.key === 'Enter' && add.value.trim()) { grab(); c.todo.push({ t: add.value.trim(), done: false }); await persist(`${c.name} to-do`); route(); } };
+    el.querySelector('[data-del]').onclick = async () => { if (!confirm(`Remove ${c.name}?`)) return; clubs.splice(el.dataset.i, 1); await persist(`Remove ${c.name}`); route(); };
+  });
+  document.getElementById('addClub').onclick = async () => {
+    const name = document.getElementById('newClub').value.trim();
+    if (!name) return toast('Give the club a name.');
+    clubs.push({ id: slug(name), name, role: '', notes: '', todo: [], links: [] }); await persist(`Add ${name}`); route();
+  };
 }
 
 // ---------- DECA Stock Market Game (copied from ~/deca-smg each morning by the 7am agent) ----------
@@ -672,7 +732,7 @@ async function route() {
   if (page === 'lock') { lock(); location.hash = 'home'; return; }
   if (!DEMO && !token()) return viewUnlock();
   try {
-    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG }[page] || viewHome)(arg);
+    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs }[page] || viewHome)(arg);
     window.scrollTo(0, 0);
   } catch (e) {
     $view.innerHTML = `<div class="hero"><h1>Can't load</h1><p>${esc(e.message)}</p><p><button class="ghost" onclick="route()">Try again</button></p></div>`;

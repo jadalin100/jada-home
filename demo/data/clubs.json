@@ -1,0 +1,15 @@
+[
+ {
+  "id": "demo-club",
+  "name": "Demo Club",
+  "role": "Demo Treasurer",
+  "notes": "",
+  "todo": [
+   {
+    "t": "Demo club task",
+    "done": false
+   }
+  ],
+  "links": []
+ }
+]
