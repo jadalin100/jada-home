@@ -760,13 +760,23 @@ async function viewSchool() {
   });
 }
 
+// consecutive logged weeks, counting back from this week (or last week if this week isn't logged yet)
+const weekStreak = wk => { let i = wk.length - 1, n = 0; if (!wk[i]) i--; while (i >= 0 && wk[i]) { n++; i--; } return n; };
+const WEEKLY = ['Tutoring'];   // ponytail: hard-coded weekly activities; move to data/ if she adds more
 async function viewImpact() {
   const log = (await readJSON('data/impact.json', [])).sort((a, b) => b.date.localeCompare(a.date));
   const total = log.reduce((n, e) => n + (+e.hours || 0), 0);
   const by = {}; log.forEach(e => by[e.what] = (by[e.what] || 0) + (+e.hours || 0));
   const kinds = Object.keys(by);
+  const mon = addDays(today(), -((new Date(today() + 'T12:00').getDay() + 6) % 7));   // this week's Monday
+  const weeks = Array.from({ length: 12 }, (_, i) => addDays(mon, -7 * (11 - i)));
   $view.innerHTML = `
     <div class="hero"><h1>Community Impact</h1><p class="muted">${total} hours logged${kinds.length ? ' · ' + kinds.map(k => `${esc(k)} ${by[k]}h`).join(' · ') : ''}</p></div>
+    ${WEEKLY.map(w => { const wk = weeks.map(d => log.some(e => e.what === w && e.date >= d && e.date < addDays(d, 7))); const done = wk[wk.length - 1]; return `
+    <div class="card"><h2>${esc(w)} <span class="muted small">weekly</span></h2>
+      <div class="row"><span class="big-num">${weekStreak(wk)}</span><span class="muted">week streak</span>
+        <button data-week="${esc(w)}" ${done ? 'disabled' : ''}>${done ? 'Logged this week ✓' : 'Log this week'}</button></div>
+      <div class="dots" aria-label="Last 12 weeks">${wk.map((on, i) => `<span class="${on ? 'on' : ''}" title="Week of ${weeks[i]}"></span>`).join('')}</div></div>`; }).join('')}
     <div class="card"><h2>Log a session</h2>
       <div class="row"><input type="date" id="imDate" value="${today()}" aria-label="Date">
         <input type="text" id="imWhat" list="imKinds" placeholder="Activity (e.g. Tutoring)" value="${esc(kinds[0] || 'Tutoring')}" aria-label="Activity">
@@ -782,6 +792,11 @@ async function viewImpact() {
     if (!e.date) return;
     put([...log, e], `Impact: ${e.what} ${e.date}`);
   };
+  $view.querySelectorAll('[data-week]').forEach(b => b.onclick = () => {
+    const h = prompt(`Hours of ${b.dataset.week} this week?`, '1'); if (h === null) return;
+    const note = prompt('What did you cover? (optional)', '') || '';
+    put([...log, { id: Date.now().toString(36), date: today(), what: b.dataset.week, hours: +h || 0, note }], `Impact: ${b.dataset.week} ${today()}`);
+  });
   $view.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => confirm('Remove this entry?') && put(log.filter(e => e.id !== b.dataset.rm), 'Impact: remove entry'));
 }
 
