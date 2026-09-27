@@ -115,10 +115,6 @@ async function viewHome() {
     read(`journal/${addDays(t, -1)}.md`), list('routines'), readJSON('data/study.json', { tracks: [] }),
   ]);
   const school = await readJSON('school/week.json', { items: [] });
-  const hwDone = await readJSON('data/homework.json', []);
-  const hwKey = e => `${e.date}|${e.cls}|${e.title}`;
-  const hw = school.items.filter(e => e.date >= t && !['Tennis', 'Event'].includes(e.cls)).sort((a, b) => a.date.localeCompare(b.date));
-  const due = d => ({ 0: 'today', 1: 'tomorrow' }[daysUntil(d)] || new Date(d + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
   const days = [...new Set(school.items.filter(e => e.date >= t).map(e => e.date))].sort().slice(0, 7);
   const y = parse(yText, addDays(t, -1));
   setMood(parse(await read(`journal/${t}.md`), t).mood || y.mood);
@@ -156,9 +152,6 @@ async function viewHome() {
         <p><a class="fun" href="https://www.nytimes.com/games/strands" target="_blank" rel="noopener">🔵 Today's Strands ↗</a></p>
       </div>
     </div>
-
-    ${hw.length ? `<section><h2>Homework</h2><div class="card"><ul class="checks">${hw.map((e, i) => { const k = hwKey(e), done = hwDone.includes(k); return `
-      <li><input type="checkbox" id="hw${i}" data-hw="${esc(k)}" ${done ? 'checked' : ''}><label for="hw${i}" class="${done ? 'done' : ''}"><span class="cls">${esc(e.cls)}</span> ${esc(e.title)} <span class="muted">· due ${due(e.date)}</span></label></li>`; }).join('')}</ul></div></section>` : ''}
 
     ${days.length ? `<section><h2><a href="#school">School this week</a></h2><div class="card school">${days.map(d => `
       <div class="sday"><div class="kind">${esc(prettyDate(d))}</div><ul>${school.items.filter(e => e.date === d).map(e => `
@@ -220,11 +213,6 @@ async function viewHome() {
   const cd = document.getElementById('clearDone');
   if (cd) cd.onclick = () => { todos.splice(0, todos.length, ...todos.filter(x => !x.done)); saveTodos('Clear checked to-dos'); };
   bindStudyBtns(study);
-  $view.querySelectorAll('[data-hw]').forEach(b => b.onchange = async () => {
-    const k = b.dataset.hw, keep = hwDone.filter(x => x >= t);  // drop old keys
-    const next = b.checked ? [...keep, k] : keep.filter(x => x !== k);
-    await save('data/homework.json', JSON.stringify(next, null, 1) + '\n', `Homework ${b.checked ? 'done' : 'undone'}: ${k}`); route();
-  });
 }
 
 // one "studied today" button per study track; used on Home and Study
@@ -752,15 +740,52 @@ async function viewUnlock() {
 }
 
 async function viewSchool() {
-  const cals = await readJSON('data/school.json', []);
+  const t = today();
+  const [cals, school, hwDone] = await Promise.all([readJSON('data/school.json', []), readJSON('school/week.json', { items: [] }), readJSON('data/homework.json', [])]);
+  const hwKey = e => `${e.date}|${e.cls}|${e.title}`;
+  const hw = school.items.filter(e => e.date >= t && !['Tennis', 'Event'].includes(e.cls)).sort((a, b) => a.date.localeCompare(b.date));
+  const due = d => ({ 0: 'today', 1: 'tomorrow' }[daysUntil(d)] || new Date(d + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
   const src = cals.map(c => 'src=' + encodeURIComponent(c.id)).join('&');
   const url = mode => `https://calendar.google.com/calendar/embed?${src}&ctz=America%2FNew_York&mode=${mode}&showTitle=0&showPrint=0`;
   $view.innerHTML = `
     <div class="hero"><h1>School</h1><p class="muted">${cals.map(c => esc(c.name)).join(' · ')}</p></div>
+    <div class="card"><h2>Homework</h2>${hw.length ? `<ul class="checks">${hw.map((e, i) => { const k = hwKey(e), done = hwDone.includes(k); return `
+      <li><input type="checkbox" id="hw${i}" data-hw="${esc(k)}" ${done ? 'checked' : ''}><label for="hw${i}" class="${done ? 'done' : ''}"><span class="cls">${esc(e.cls)}</span> ${esc(e.title)} <span class="muted">· due ${due(e.date)}</span></label></li>`; }).join('')}</ul>
+      <p class="muted">From your class calendars, updated ${esc(school.updated || '')} by the 7am task.</p>` : '<p class="muted">Nothing due in the next two weeks.</p>'}</div>
     <p class="row"><button class="ghost" data-mode="AGENDA">List</button><button class="ghost" data-mode="WEEK">Week</button><button class="ghost" data-mode="MONTH">Month</button></p>
     <iframe id="cal" class="cal" src="${url('AGENDA')}" title="School calendar"></iframe>
     <p class="muted">Blank or asking you to sign in? Sign into your school Google account in this browser. In Safari, turn off "Prevent cross-site tracking".</p>`;
   $view.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => $view.querySelector('#cal').src = url(b.dataset.mode));
+  $view.querySelectorAll('[data-hw]').forEach(b => b.onchange = async () => {
+    const k = b.dataset.hw, keep = hwDone.filter(x => x >= t);  // drop old keys
+    const next = b.checked ? [...keep, k] : keep.filter(x => x !== k);
+    await save('data/homework.json', JSON.stringify(next, null, 1) + '\n', `Homework ${b.checked ? 'done' : 'undone'}: ${k}`); route();
+  });
+}
+
+async function viewImpact() {
+  const log = (await readJSON('data/impact.json', [])).sort((a, b) => b.date.localeCompare(a.date));
+  const total = log.reduce((n, e) => n + (+e.hours || 0), 0);
+  const by = {}; log.forEach(e => by[e.what] = (by[e.what] || 0) + (+e.hours || 0));
+  const kinds = Object.keys(by);
+  $view.innerHTML = `
+    <div class="hero"><h1>Community Impact</h1><p class="muted">${total} hours logged${kinds.length ? ' · ' + kinds.map(k => `${esc(k)} ${by[k]}h`).join(' · ') : ''}</p></div>
+    <div class="card"><h2>Log a session</h2>
+      <div class="row"><input type="date" id="imDate" value="${today()}" aria-label="Date">
+        <input type="text" id="imWhat" list="imKinds" placeholder="Activity (e.g. Tutoring)" value="${esc(kinds[0] || 'Tutoring')}" aria-label="Activity">
+        <datalist id="imKinds">${kinds.map(k => `<option value="${esc(k)}">`).join('')}</datalist>
+        <input type="number" id="imHours" min="0" step="0.25" value="1" style="width:6rem" aria-label="Hours"></div>
+      <textarea id="imNote" rows="2" placeholder="What you did (optional)" aria-label="Notes"></textarea>
+      <p><button id="imAdd">Add</button></p></div>
+    <div class="card"><h2>History</h2>${log.length ? `<ul class="checks">${log.map(e => `<li><span><span class="cls">${esc(e.what)}</span> ${esc(prettyDate(e.date))} · ${esc(e.hours)}h${e.note ? ` <span class="muted">— ${esc(e.note)}</span>` : ''}</span>
+      <button class="x" data-rm="${esc(e.id)}" aria-label="Remove">×</button></li>`).join('')}</ul>` : '<p class="muted">Nothing logged yet.</p>'}</div>`;
+  const put = (next, msg) => save('data/impact.json', JSON.stringify(next, null, 1) + '\n', msg).then(route);
+  $view.querySelector('#imAdd').onclick = () => {
+    const e = { id: Date.now().toString(36), date: $view.querySelector('#imDate').value, what: $view.querySelector('#imWhat').value.trim() || 'Tutoring', hours: +$view.querySelector('#imHours').value || 0, note: $view.querySelector('#imNote').value.trim() };
+    if (!e.date) return;
+    put([...log, e], `Impact: ${e.what} ${e.date}`);
+  };
+  $view.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => confirm('Remove this entry?') && put(log.filter(e => e.id !== b.dataset.rm), 'Impact: remove entry'));
 }
 
 function lock() { sessionStorage.removeItem('ghToken'); localStorage.removeItem('ghToken'); }
@@ -773,7 +798,7 @@ async function route() {
   if (page === 'lock') { lock(); location.hash = 'home'; return; }
   if (!DEMO && !token()) return viewUnlock();
   try {
-    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs, school: viewSchool }[page] || viewHome)(arg);
+    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs, school: viewSchool, impact: viewImpact }[page] || viewHome)(arg);
     window.scrollTo(0, 0);
   } catch (e) {
     $view.innerHTML = `<div class="hero"><h1>Can't load</h1><p>${esc(e.message)}</p><p><button class="ghost" onclick="route()">Try again</button></p></div>`;
