@@ -145,11 +145,6 @@ async function viewHome() {
         <h2><a href="#study">Study streaks</a></h2>
         <ul class="streaks">${study.tracks.map((tr, ti) => `<li><span>${esc(tr.name)}</span><span class="d">${streak(tr.days || [])}</span>
           ${studyBtn(tr, ti, 'ghost')}</li>`).join('')}</ul>
-        <h2 style="margin-top:1.6rem">Just for fun</h2>
-        <p><a class="fun" href="https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=1" target="_blank" rel="noopener">♈ Aries horoscope ↗</a></p>
-        <p><a class="fun" href="https://www.nytimes.com/games/wordle/index.html" target="_blank" rel="noopener">🟩 Today's Wordle ↗</a></p>
-        <p><a class="fun" href="https://www.nytimes.com/games/connections" target="_blank" rel="noopener">🟪 Today's Connections ↗</a></p>
-        <p><a class="fun" href="https://www.nytimes.com/games/strands" target="_blank" rel="noopener">🔵 Today's Strands ↗</a></p>
       </div>
     </div>
 
@@ -301,12 +296,14 @@ async function viewJournal(date = today()) {
     e.wins = document.getElementById('wins').value;
     await save(`journal/${date}.md`, serialize(e), `Journal ${date}`);
   };
+  const past = document.createElement('div'); past.className = 'past'; $view.append(past);
+  await viewArchive('', past);
 }
 
-async function viewArchive(q = '') {
+async function viewArchive(q = '', host = $view) {
   const [entries, weeks] = await Promise.all([allEntries(), list('weekly')]);
-  $view.innerHTML = `
-    <div class="hero"><h1>Entries</h1><p class="muted">${entries.length} entries. Search words, projects, or moods to pull out threads.</p>
+  host.innerHTML = `
+    <div class="hero"><h1>Past entries</h1><p class="muted">${entries.length} entries. Search words, projects, or moods to pull out threads.</p>
       <input type="search" id="q" placeholder="Search every entry" value="${esc(q)}" aria-label="Search entries" style="max-width:32rem"></div>
     <div id="results" class="pages"></div>
     <section><h2>Weekly summaries</h2><div class="pages">
@@ -788,21 +785,80 @@ async function viewImpact() {
   $view.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => confirm('Remove this entry?') && put(log.filter(e => e.id !== b.dataset.rm), 'Impact: remove entry'));
 }
 
+function viewFun() {
+  const games = [
+    ['♈', 'Aries horoscope', 'https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=1'],
+    ['🟩', "Today's Wordle", 'https://www.nytimes.com/games/wordle/index.html'],
+    ['🟪', "Today's Connections", 'https://www.nytimes.com/games/connections'],
+    ['🔵', "Today's Strands", 'https://www.nytimes.com/games/strands'],
+  ];
+  $view.innerHTML = `<div class="hero"><h1>Just for fun</h1><p class="muted">Tap the ram for a surprise.</p></div>
+    <div class="grid">${games.map(([i, n, u]) => `<a class="card fun-card" href="${u}" target="_blank" rel="noopener"><span class="fun-ico">${i}</span><h3>${n} ↗</h3></a>`).join('')}</div>`;
+}
+
 function lock() { sessionStorage.removeItem('ghToken'); localStorage.removeItem('ghToken'); }
 
 // ---------- router ----------
 async function route() {
   cache = {};
   const [page, arg] = decodeURIComponent(location.hash.slice(1) || 'home').split('/');
-  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + ({ archive: 'entries', entry: 'entries', week: 'entries', project: 'projects' }[page] || page)));
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + ({ archive: 'journal', entries: 'journal', entry: 'journal', week: 'journal', project: 'projects' }[page] || page)));
   if (page === 'lock') { lock(); location.hash = 'home'; return; }
   if (!DEMO && !token()) return viewUnlock();
   try {
-    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs, school: viewSchool, impact: viewImpact }[page] || viewHome)(arg);
+    await ({ home: viewHome, journal: viewJournal, entries: viewJournal, archive: viewJournal, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs, school: viewSchool, impact: viewImpact, fun: viewFun }[page] || viewHome)(arg);
     window.scrollTo(0, 0);
   } catch (e) {
     $view.innerHTML = `<div class="hero"><h1>Can't load</h1><p>${esc(e.message)}</p><p><button class="ghost" onclick="route()">Try again</button></p></div>`;
   }
 }
 addEventListener('hashchange', route);
+
+// ---------- Aries the ram: wanders along the bottom, celebrates checked-off tasks ----------
+(() => {
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ram = document.createElement('div');
+  ram.id = 'ram'; ram.title = 'Baa!';
+  ram.innerHTML = `<div class="bubble"></div><svg viewBox="0 0 64 56" aria-hidden="true">
+    <g class="legs" stroke="#6b5a4e" stroke-width="3.5" stroke-linecap="round"><path d="M22 44v8M30 45v8M38 45v8M46 44v8"/></g>
+    <g fill="#fffaf2" stroke="#e9dccb" stroke-width="1.2"><circle cx="24" cy="34" r="10"/><circle cx="34" cy="30" r="11"/><circle cx="44" cy="35" r="9"/><circle cx="30" cy="41" r="8"/><circle cx="41" cy="42" r="8"/><circle cx="50" cy="30" r="6"/></g>
+    <ellipse cx="16" cy="30" rx="8" ry="9.5" fill="#8a7465"/>
+    <path d="M18 22c7-6 13 1 9 6-3 4-8 1-6-2" fill="none" stroke="#e8b4b8" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M12 22c-6-4-10 3-6 6 3 2 5-1 4-3" fill="none" stroke="#e8b4b8" stroke-width="3.2" stroke-linecap="round"/>
+    <circle cx="13" cy="29" r="1.6" fill="#2b2320"/><circle cx="19" cy="29" r="1.6" fill="#2b2320"/>
+    <circle cx="11" cy="33" r="1.8" fill="#f4a6b6" opacity=".7"/><circle cx="21" cy="33" r="1.8" fill="#f4a6b6" opacity=".7"/>
+    <path d="M14.5 34q1.5 1.4 3 0" fill="none" stroke="#2b2320" stroke-width="1" stroke-linecap="round"/></svg>`;
+  document.body.append(ram);
+  let x = 40, busy = false;
+  const face = nx => ram.classList.toggle('flip', nx > x);   // svg faces left by default
+  const say = (t, ms = 1600) => { const b = ram.querySelector('.bubble'); b.textContent = t; ram.classList.add('talk'); setTimeout(() => ram.classList.remove('talk'), ms); };
+  const moveTo = nx => { face(nx); x = nx; ram.style.left = x + 'px'; };
+  const wander = () => {
+    if (!still && !busy && !document.hidden) {
+      const w = innerWidth - 80;
+      const nx = Math.max(8, Math.min(w, x + (Math.random() - .5) * 360));
+      ram.classList.add('hop'); moveTo(nx); setTimeout(() => ram.classList.remove('hop'), 1600);
+      if (Math.random() < .15) setTimeout(() => say(['baa', '✿', 'hi Jada', '♈', '…zzz'][Math.floor(Math.random() * 5)]), 1700);
+    }
+    setTimeout(wander, 6000 + Math.random() * 8000);
+  };
+  const cheers = ['Nice one!', 'BAA-rilliant!', 'Go Jada!', 'One down ✓', 'Ram-azing!', 'Unstoppable ♈', 'Proud of you!'];
+  const celebrate = () => {
+    busy = true; say(cheers[Math.floor(Math.random() * cheers.length)], 2000);
+    if (!still) {
+      ram.classList.add('party');
+      for (let i = 0; i < 7; i++) {
+        const h = document.createElement('span'); h.className = 'ram-heart'; h.textContent = ['♥', '✿', '✦'][i % 3];
+        h.style.left = (x + 28 + (Math.random() - .5) * 60) + 'px'; h.style.animationDelay = i * 70 + 'ms';
+        document.body.append(h); setTimeout(() => h.remove(), 1600);
+      }
+      setTimeout(() => ram.classList.remove('party'), 1200);
+    }
+    setTimeout(() => busy = false, 2200);
+  };
+  document.addEventListener('change', ev => { if (ev.target.type === 'checkbox' && ev.target.checked) celebrate(); }, true);
+  document.addEventListener('click', ev => { if (ev.target.closest('[data-day]:not([disabled])')) celebrate(); }, true);
+  ram.onclick = () => { if (busy) return; busy = true; say(['Baa!', 'Hehe', '♈ Aries energy', 'Pet me more'][Math.floor(Math.random() * 4)]); if (!still) { ram.classList.add('spin'); setTimeout(() => ram.classList.remove('spin'), 800); } setTimeout(() => busy = false, 900); };
+  moveTo(Math.min(innerWidth - 90, innerWidth * .7)); setTimeout(wander, 3000);
+})();
 route();
