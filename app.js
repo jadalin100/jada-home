@@ -152,6 +152,8 @@ async function viewHome() {
         <h2 style="margin-top:1.6rem">Just for fun</h2>
         <p><a class="fun" href="https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=1" target="_blank" rel="noopener">♈ Aries horoscope ↗</a></p>
         <p><a class="fun" href="https://www.nytimes.com/games/wordle/index.html" target="_blank" rel="noopener">🟩 Today's Wordle ↗</a></p>
+        <p><a class="fun" href="https://www.nytimes.com/games/connections" target="_blank" rel="noopener">🟪 Today's Connections ↗</a></p>
+        <p><a class="fun" href="https://www.nytimes.com/games/strands" target="_blank" rel="noopener">🔵 Today's Strands ↗</a></p>
       </div>
     </div>
 
