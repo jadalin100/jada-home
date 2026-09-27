@@ -331,12 +331,27 @@ async function viewWeek(name) {
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'project';
 const saveJSON = (path, obj, msg) => save(path, JSON.stringify(obj, null, 1) + '\n', msg);
 
+// Per-project work log: logs/<project-id>.json = { "YYYY-MM-DD": "what I did" }
+const logPath = id => `logs/${id}.json`;
+const saveLog = (id, log, msg) => save(logPath(id), JSON.stringify(log, null, 1) + '\n', msg);
+
 async function viewProjects() {
   const [projects, deadlines] = await Promise.all([readJSON('data/projects.json', []), readJSON('data/deadlines.json', [])]);
+  const t = today();
+  const logs = await Promise.all(projects.map(p => readJSON(logPath(p.id), {})));
   deadlines.sort((a, b) => a.date.localeCompare(b.date));
   const opts = sel => `<option value="">No project</option>` + projects.map(p => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
   $view.innerHTML = `
     <div class="hero"><h1>Projects</h1></div>
+    <div class="card">
+      <h2>Today's work log</h2>
+      <p class="small muted">${esc(prettyDate(t))} · fill in only the projects you touched.</p>
+      <div class="loggrid">${projects.map((p, i) => `
+        <label class="field" for="log${i}">${esc(p.name)}</label>
+        <textarea id="log${i}" rows="2" placeholder="What did you do?">${esc(logs[i][t] || '')}</textarea>`).join('')}</div>
+      <p><button id="saveLogs">Save log</button></p>
+    </div>
+    <section><h2>All projects</h2>
     <div class="grid">${projects.map(p => `
       <a class="card" href="#project/${esc(p.id)}">
         <div class="kind">${esc(p.kind)}</div><h3>${esc(p.name)}</h3>
@@ -347,6 +362,8 @@ async function viewProjects() {
         <input type="text" id="newP" placeholder="Project name" aria-label="New project name">
         <p><button id="addP">Add project</button></p></div>
     </div>
+
+    </section>
 
     <section><h2>Deadlines</h2>
       <div class="card">
@@ -365,6 +382,16 @@ async function viewProjects() {
       </div>
     </section>`;
 
+  document.getElementById('saveLogs').onclick = async () => {
+    let n = 0;
+    for (const [i, p] of projects.entries()) {
+      const v = document.getElementById('log' + i).value.trim();
+      if (v === (logs[i][t] || '')) continue;
+      if (v) logs[i][t] = v; else delete logs[i][t];
+      await saveLog(p.id, logs[i], `Work log ${t}: ${p.name}`); n++;
+    }
+    if (!n) toast('Nothing new to save.');
+  };
   document.getElementById('addP').onclick = async () => {
     const name = document.getElementById('newP').value.trim();
     if (!name) return toast('Give the project a name.');
@@ -393,7 +420,8 @@ async function viewProjects() {
 }
 
 async function viewProject(id) {
-  const [projects, deadlines, entries] = await Promise.all([readJSON('data/projects.json', []), readJSON('data/deadlines.json', []), allEntries()]);
+  const [projects, deadlines, entries, log] = await Promise.all([readJSON('data/projects.json', []), readJSON('data/deadlines.json', []), allEntries(), readJSON(logPath(id), {})]);
+  const t = today(), days = Object.keys(log).sort().reverse();
   const p = projects.find(x => x.id === id);
   if (!p) { $view.innerHTML = '<div class="hero"><h1>Not found</h1><p><a href="#projects">Back to projects</a></p></div>'; return; }
   const mine = deadlines.filter(d => d.project === id).sort((a, b) => a.date.localeCompare(b.date));
@@ -418,9 +446,24 @@ async function viewProject(id) {
         ${p.links.map(l => `<p class="small"><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a></p>`).join('')}
       </div>
     </div>
+    <section><h2>Work log</h2>
+      <div class="card">
+        <label class="field" for="logToday">${esc(prettyDate(t))}</label>
+        <textarea id="logToday" rows="3" placeholder="What did you do today?">${esc(log[t] || '')}</textarea>
+        <p><button id="saveLogToday">Save log</button></p>
+        ${days.filter(d => d !== t).map(d => `<div class="logday"><span class="d">${esc(prettyDate(d))}</span><p class="prose small">${esc(log[d])}</p></div>`).join('')
+          || '<p class="muted small">Past days show here once you log them.</p>'}
+        ${days.length ? `<p class="small muted">${days.length} day${days.length === 1 ? '' : 's'} logged</p>` : ''}
+      </div>
+    </section>
     <section><h2>In your journal</h2><div class="pages">
       ${mentions.map(e => `<a class="page" href="#entry/${e.date}"><span class="tape"></span><span class="d">${esc(prettyDate(e.date))}</span><p class="small">${esc((e.thoughts || e.wins).slice(0, 200))}</p></a>`).join('') || '<p class="muted">Tag this project in a journal entry and it shows up here.</p>'}
     </div></section>`;
+  document.getElementById('saveLogToday').onclick = async () => {
+    const v = document.getElementById('logToday').value.trim();
+    if (v) log[t] = v; else delete log[t];
+    await saveLog(id, log, `Work log ${t}: ${p.name}`); route();
+  };
   document.getElementById('saveP').onclick = async () => {
     for (const f of ['name', 'kind', 'blurb', 'status', 'next', 'folder']) p[f] = document.getElementById('p-' + f).value.trim();
     p.links = document.getElementById('p-links').value.split('\n').map(l => l.split('|').map(s => s.trim())).filter(([a, b]) => a && b).map(([label, url]) => ({ label, url }));

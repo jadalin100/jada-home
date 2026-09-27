@@ -223,3 +223,11 @@ body[data-mood="sad"]      { --b1: var(--sky); --b2: #d9d5e6; --b3: var(--sky); 
 .notebook::before { background: radial-gradient(ellipse 9px 5px at 50% 50%, transparent 55%, color-mix(in srgb, var(--day, #9f97dd) 55%, #6d6878) 60% 100%, transparent 101%) 0 0 / 28px 22px repeat-y; }
 a.fun { text-decoration: none; font-size: 1.05rem; }
 a.fun:hover { text-decoration: underline; }
+
+.loggrid { display: grid; grid-template-columns: 180px 1fr; gap: .5rem 1rem; align-items: start; }
+.loggrid .field { margin: .7rem 0 0; }
+.loggrid textarea { min-height: 2.8rem; }
+@media (max-width: 640px) { .loggrid { grid-template-columns: 1fr; } .loggrid .field { margin-top: .6rem; } }
+.logday { padding: .7rem 0; border-top: 1px solid var(--line); }
+.logday .d { font-family: Italiana, serif; font-size: 1.2rem; }
+.logday p { margin: .2rem 0 0; }
