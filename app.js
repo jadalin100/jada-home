@@ -730,6 +730,18 @@ async function viewUnlock() {
   };
 }
 
+async function viewSchool() {
+  const cals = await readJSON('data/school.json', []);
+  const src = cals.map(c => 'src=' + encodeURIComponent(c.id)).join('&');
+  const url = mode => `https://calendar.google.com/calendar/embed?${src}&ctz=America%2FNew_York&mode=${mode}&showTitle=0&showPrint=0`;
+  $view.innerHTML = `
+    <div class="hero"><h1>School</h1><p class="muted">${cals.map(c => esc(c.name)).join(' · ')}</p></div>
+    <p class="row"><button class="ghost" data-mode="AGENDA">List</button><button class="ghost" data-mode="WEEK">Week</button><button class="ghost" data-mode="MONTH">Month</button></p>
+    <iframe id="cal" class="cal" src="${url('AGENDA')}" title="School calendar"></iframe>
+    <p class="muted">Blank or asking you to sign in? Sign into your school Google account in this browser. In Safari, turn off "Prevent cross-site tracking".</p>`;
+  $view.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => $view.querySelector('#cal').src = url(b.dataset.mode));
+}
+
 function lock() { sessionStorage.removeItem('ghToken'); localStorage.removeItem('ghToken'); }
 
 // ---------- router ----------
@@ -740,7 +752,7 @@ async function route() {
   if (page === 'lock') { lock(); location.hash = 'home'; return; }
   if (!DEMO && !token()) return viewUnlock();
   try {
-    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs }[page] || viewHome)(arg);
+    await ({ home: viewHome, journal: viewJournal, entries: viewArchive, archive: viewArchive, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs, school: viewSchool }[page] || viewHome)(arg);
     window.scrollTo(0, 0);
   } catch (e) {
     $view.innerHTML = `<div class="hero"><h1>Can't load</h1><p>${esc(e.message)}</p><p><button class="ghost" onclick="route()">Try again</button></p></div>`;

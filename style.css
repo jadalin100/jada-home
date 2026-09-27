@@ -241,3 +241,5 @@ a.ghostlink { background: transparent; color: var(--ink); border: 1px solid var(
 .streaks li span:first-child { flex: 1; }
 .streaks .d { font-family: Italiana, serif; font-size: 1.6rem; min-width: 2ch; text-align: right; }
 .streaks button { padding: .3rem .7rem; font-size: .85rem; }
+
+.cal { width: 100%; height: 70vh; border: 0; border-radius: 16px; background: #fff; }
