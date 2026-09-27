@@ -114,6 +114,8 @@ async function viewHome() {
     read(`quotes/${t}.md`), readJSON('data/todos.json', []), readJSON('data/deadlines.json', []),
     read(`journal/${addDays(t, -1)}.md`), list('routines'), readJSON('data/study.json', { tracks: [] }),
   ]);
+  const school = await readJSON('school/week.json', { items: [] });
+  const days = [...new Set(school.items.filter(e => e.date >= t).map(e => e.date))].sort().slice(0, 7);
   const y = parse(yText, addDays(t, -1));
   setMood(parse(await read(`journal/${t}.md`), t).mood || y.mood);
   const [quote, who] = (quoteText || '').trim().split(/\n+—\s*|\n+-\s+/);
@@ -148,6 +150,11 @@ async function viewHome() {
         <p><a class="fun" href="https://www.nytimes.com/games/wordle/index.html" target="_blank" rel="noopener">🟩 Today's Wordle ↗</a></p>
       </div>
     </div>
+
+    ${days.length ? `<section><h2><a href="#school">School this week</a></h2><div class="card school">${days.map(d => `
+      <div class="sday"><div class="kind">${esc(prettyDate(d))}</div><ul>${school.items.filter(e => e.date === d).map(e => `
+        <li><span class="cls">${esc(e.cls)}</span> ${esc(e.title)}${e.time ? ` <span class="muted">${esc(e.time)}</span>` : ''}</li>`).join('')}</ul></div>`).join('')}
+      <p class="muted">Updated ${esc(school.updated || '')} by the 7am task.</p></div></section>` : ''}
 
     ${inbox.length ? `<section><h2>Found by competition scout</h2><div class="grid">${inbox.map((c, i) => `
       <div class="card">
