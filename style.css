@@ -247,3 +247,4 @@ a.ghostlink { background: transparent; color: var(--ink); border: 1px solid var(
 .school ul { list-style: none; padding: 0; margin: .3rem 0 0; }
 .school li { padding: .2rem 0; }
 .school .cls { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; opacity: .65; margin-right: .4rem; }
+.checks .cls { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; opacity: .65; margin-right: .3rem; }

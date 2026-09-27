@@ -115,6 +115,10 @@ async function viewHome() {
     read(`journal/${addDays(t, -1)}.md`), list('routines'), readJSON('data/study.json', { tracks: [] }),
   ]);
   const school = await readJSON('school/week.json', { items: [] });
+  const hwDone = await readJSON('data/homework.json', []);
+  const hwKey = e => `${e.date}|${e.cls}|${e.title}`;
+  const hw = school.items.filter(e => e.date >= t && !['Tennis', 'Event'].includes(e.cls)).sort((a, b) => a.date.localeCompare(b.date));
+  const due = d => ({ 0: 'today', 1: 'tomorrow' }[daysUntil(d)] || new Date(d + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
   const days = [...new Set(school.items.filter(e => e.date >= t).map(e => e.date))].sort().slice(0, 7);
   const y = parse(yText, addDays(t, -1));
   setMood(parse(await read(`journal/${t}.md`), t).mood || y.mood);
@@ -150,6 +154,9 @@ async function viewHome() {
         <p><a class="fun" href="https://www.nytimes.com/games/wordle/index.html" target="_blank" rel="noopener">🟩 Today's Wordle ↗</a></p>
       </div>
     </div>
+
+    ${hw.length ? `<section><h2>Homework</h2><div class="card"><ul class="checks">${hw.map((e, i) => { const k = hwKey(e), done = hwDone.includes(k); return `
+      <li><input type="checkbox" id="hw${i}" data-hw="${esc(k)}" ${done ? 'checked' : ''}><label for="hw${i}" class="${done ? 'done' : ''}"><span class="cls">${esc(e.cls)}</span> ${esc(e.title)} <span class="muted">· due ${due(e.date)}</span></label></li>`; }).join('')}</ul></div></section>` : ''}
 
     ${days.length ? `<section><h2><a href="#school">School this week</a></h2><div class="card school">${days.map(d => `
       <div class="sday"><div class="kind">${esc(prettyDate(d))}</div><ul>${school.items.filter(e => e.date === d).map(e => `
@@ -211,6 +218,11 @@ async function viewHome() {
   const cd = document.getElementById('clearDone');
   if (cd) cd.onclick = () => { todos.splice(0, todos.length, ...todos.filter(x => !x.done)); saveTodos('Clear checked to-dos'); };
   bindStudyBtns(study);
+  $view.querySelectorAll('[data-hw]').forEach(b => b.onchange = async () => {
+    const k = b.dataset.hw, keep = hwDone.filter(x => x >= t);  // drop old keys
+    const next = b.checked ? [...keep, k] : keep.filter(x => x !== k);
+    await save('data/homework.json', JSON.stringify(next, null, 1) + '\n', `Homework ${b.checked ? 'done' : 'undone'}: ${k}`); route();
+  });
 }
 
 // one "studied today" button per study track; used on Home and Study
