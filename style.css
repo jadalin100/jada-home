@@ -236,3 +236,8 @@ a.ghostlink { background: transparent; color: var(--ink); border: 1px solid var(
 .track { scroll-margin-top: 1rem; }
 .club .clubname { font-family: Italiana, serif; font-size: 1.45rem; border: 0; background: transparent; padding: 0; text-transform: uppercase; }
 .club .checks li { align-items: center; }
+.streaks { list-style: none; padding: 0; margin: .4rem 0 0; }
+.streaks li { display: flex; align-items: center; gap: .6rem; padding: .35rem 0; border-bottom: 1px dashed var(--line); }
+.streaks li span:first-child { flex: 1; }
+.streaks .d { font-family: Italiana, serif; font-size: 1.6rem; min-width: 2ch; text-align: right; }
+.streaks button { padding: .3rem .7rem; font-size: .85rem; }

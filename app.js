@@ -112,7 +112,7 @@ async function viewHome() {
   const [inbox, projects] = await Promise.all([readJSON('data/inbox.json', []), readJSON('data/projects.json', [])]);
   const [quoteText, todos, deadlines, yText, routineNames, study] = await Promise.all([
     read(`quotes/${t}.md`), readJSON('data/todos.json', []), readJSON('data/deadlines.json', []),
-    read(`journal/${addDays(t, -1)}.md`), list('routines'), readJSON('data/study.json', { viola: [] }),
+    read(`journal/${addDays(t, -1)}.md`), list('routines'), readJSON('data/study.json', { tracks: [] }),
   ]);
   const y = parse(yText, addDays(t, -1));
   setMood(parse(await read(`journal/${t}.md`), t).mood || y.mood);
@@ -140,10 +140,9 @@ async function viewHome() {
         ${todos.some(x => x.done) ? '<p><button class="ghost" id="clearDone">Clear checked</button></p>' : ''}
       </div>
       <div class="card">
-        <h2>Viola</h2>
-        <div class="big-num">${streak(study.viola)}</div>
-        <p class="muted small">day streak</p>
-        <button id="viola" class="ghost" ${study.viola.includes(t) ? 'disabled' : ''}>${study.viola.includes(t) ? 'Practiced today' : 'Log practice'}</button>
+        <h2><a href="#study">Study streaks</a></h2>
+        <ul class="streaks">${study.tracks.map((tr, ti) => `<li><span>${esc(tr.name)}</span><span class="d">${streak(tr.days || [])}</span>
+          ${studyBtn(tr, ti, 'ghost')}</li>`).join('')}</ul>
         <h2 style="margin-top:1.6rem">Just for fun</h2>
         <p><a class="fun" href="https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=1" target="_blank" rel="noopener">♈ Aries horoscope ↗</a></p>
         <p><a class="fun" href="https://www.nytimes.com/games/wordle/index.html" target="_blank" rel="noopener">🟩 Today's Wordle ↗</a></p>
@@ -204,8 +203,20 @@ async function viewHome() {
   nt.onkeydown = ev => { if (ev.key === 'Enter' && nt.value.trim()) { todos.push({ t: nt.value.trim(), done: false, added: t }); saveTodos('Add to-do'); } };
   const cd = document.getElementById('clearDone');
   if (cd) cd.onclick = () => { todos.splice(0, todos.length, ...todos.filter(x => !x.done)); saveTodos('Clear checked to-dos'); };
-  const vb = document.getElementById('viola');
-  vb.onclick = async () => { study.viola.push(t); await save('data/study.json', JSON.stringify(study, null, 1) + '\n', `Viola practice ${t}`); route(); };
+  bindStudyBtns(study);
+}
+
+// one "studied today" button per study track; used on Home and Study
+const studyBtn = (tr, ti, cls = '') => {
+  const done = (tr.days || []).includes(today());
+  return `<button class="${cls}" data-day="${ti}" ${done ? 'disabled' : ''}>${done ? 'Done today ✓' : 'Studied today'}</button>`;
+};
+function bindStudyBtns(study) {
+  $view.querySelectorAll('[data-day]').forEach(b => b.onclick = async () => {
+    const tr = study.tracks[b.dataset.day];
+    (tr.days ||= []).push(today());
+    await save('data/study.json', JSON.stringify(study, null, 1) + '\n', `${tr.name} studied ${today()}`); route();
+  });
 }
 
 function streak(days) {
@@ -480,7 +491,7 @@ async function viewProject(id) {
 }
 
 async function viewStudy() {
-  const [study, deadlines] = await Promise.all([readJSON('data/study.json', { tracks: [], viola: [] }), readJSON('data/deadlines.json', [])]);
+  const [study, deadlines] = await Promise.all([readJSON('data/study.json', { tracks: [] }), readJSON('data/deadlines.json', [])]);
   const t = today();
   const last21 = Array.from({ length: 21 }, (_, i) => addDays(t, i - 20));
   const block = (ti, title, items) => `
@@ -495,15 +506,12 @@ async function viewStudy() {
   $view.innerHTML = `
     <div class="hero"><h1>Study</h1>
       <div class="chips" style="margin-top:1rem">${study.tracks.map(tr => `<a class="btn ghostlink" href="#study" data-jump="${esc(tr.id)}">${esc(tr.name)}</a>`).join('')}</div></div>
-    <div class="card"><h2>Viola</h2>
-      <div class="row"><span class="big-num">${streak(study.viola)}</span><span class="muted">day streak</span>
-      <button id="viola" ${study.viola.includes(t) ? 'disabled' : ''}>${study.viola.includes(t) ? 'Practiced today' : 'Log practice'}</button></div>
-      <div class="dots" aria-label="Last 21 days">${last21.map(d => `<span class="${study.viola.includes(d) ? 'on' : ''}" title="${d}"></span>`).join('')}</div>
-    </div>
     ${study.tracks.map((tr, ti) => {
       const dls = deadlines.filter(d => d.project === tr.id && daysUntil(d.date) >= 0).sort((a, b) => a.date.localeCompare(b.date));
       return `<section id="track-${esc(tr.id)}" class="track"><h2>${esc(tr.name)}</h2>
         ${tr.blurb ? `<p class="muted">${esc(tr.blurb)}</p>` : ''}
+        <div class="card"><div class="row"><span class="big-num">${streak(tr.days || [])}</span><span class="muted">day streak</span>${studyBtn(tr, ti)}</div>
+          <div class="dots" aria-label="Last 21 days">${last21.map(d => `<span class="${(tr.days || []).includes(d) ? 'on' : ''}" title="${d}"></span>`).join('')}</div></div>
         ${dls.length ? `<div class="deadlines">${dls.map(d => `<div class="card dl ${daysUntil(d.date) <= 7 ? 'soon' : ''}"><div class="days">${daysUntil(d.date)}</div>
           <div class="small muted">days · ${esc(d.date)}</div><p>${esc(d.label)}</p>${d.note ? `<p class="small muted">${esc(d.note)}</p>` : ''}</div>`).join('')}</div>` : ''}
         <div class="grid" style="margin-top:1rem">${Object.entries(tr.checklists).map(([name, items]) => block(ti, name, items)).join('')}
@@ -528,7 +536,7 @@ async function viewStudy() {
     if (lists[name]) return toast('That checklist already exists.');
     lists[name] = []; await persist(`New checklist ${name}`); route();
   });
-  document.getElementById('viola').onclick = async () => { study.viola.push(t); await persist(`Viola practice ${t}`); route(); };
+  bindStudyBtns(study);
 }
 
 // ---------- clubs ----------
