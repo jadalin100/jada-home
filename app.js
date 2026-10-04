@@ -132,9 +132,6 @@ async function viewHome() {
     <div class="split">
       <div class="card">
         <h2>To-do</h2>
-        ${y.todo.length ? `<p class="kind">From last night's log</p><ul class="checks">${y.todo.map((it, i) => `
-          <li><input type="checkbox" id="td${i}" data-i="${i}" ${it.done ? 'checked' : ''}><label for="td${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label></li>`).join('')}</ul>` : ''}
-        <p class="kind" style="margin-top:1rem">Anytime</p>
         <ul class="checks" id="anytime">${todos.map((it, i) => `
           <li><input type="checkbox" id="at${i}" data-a="${i}" ${it.done ? 'checked' : ''}><label for="at${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label>
           <button class="x" data-del="${i}" aria-label="Delete ${esc(it.t)}">×</button></li>`).join('')}</ul>
@@ -183,11 +180,6 @@ async function viewHome() {
         <div class="prose small">${esc(txt)}</div></details>`).join('') || '<p class="muted">Briefs show up here after the 7am run.</p>'}</div>
     </section>`;
 
-  $view.querySelectorAll('.checks input[data-i]').forEach(cb => cb.onchange = async () => {
-    y.todo[cb.dataset.i].done = cb.checked;
-    cb.nextElementSibling.classList.toggle('done', cb.checked);
-    await save(`journal/${y.date}.md`, serialize(y), `Check off to-do (${y.date})`);
-  });
   const saveInbox = msg => save('data/inbox.json', JSON.stringify(inbox, null, 1) + '\n', msg);
   $view.querySelectorAll('[data-approve]').forEach(b => b.onclick = async () => {
     const i = +b.dataset.approve, c = inbox[i], date = document.getElementById('ibd' + i).value;
