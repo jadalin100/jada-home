@@ -101,17 +101,18 @@ function topTraitToday(den, current) {
   return n[current] === best ? current : Object.keys(n).find(k => n[k] === best);
 }
 // effort, close, imp are each 1-3
-const tameChance = ({ effort, close, imp, project, match }) => 30 + 7 * (effort + close + imp - 3) + (project ? 5 : 0) + (match ? 10 : 0);
-const pointChance = streakDays => Math.min(90, 40 + 5 * streakDays);
-const breedChance = match => 50 + (match ? 10 : 0);
+const tameChance = ({ effort, close, imp, project, match }) => 10 + 2 * (effort + close + imp - 3) + (project ? 3 : 0) + (match ? 5 : 0);   // 10-30%
+const pointChance = streakDays => Math.min(30, 12 + 2 * streakDays);
+const breedChance = match => 25 + (match ? 5 : 0);
 
 // ---------- genetics ----------
-const COLORS = { PP: ['pink', '#f6c3d6'], BB: ['blue', '#c6dcf4'], YY: ['butter', '#fbe0a0'], BP: ['lavender', '#d9c8f5'], PY: ['peach', '#f9cdb0'], BY: ['mint', '#c9ead8'] };
+const COLORS = { PP: ['pink', '#f9c6d1'], BB: ['sky', '#c4e2f8'], YY: ['butter', '#fbe4a3'], NN: ['midnight', '#4c4f96'], BP: ['lavender', '#d8c7f6'],
+  PY: ['peach', '#fbcfb3'], BY: ['mint', '#c8ecd5'], NP: ['orchid', '#c79ad8'], BN: ['periwinkle', '#9aa6e6'], NY: ['sage', '#b9d6a8'] };
 const LOCI = [
   { k: 'h', n: 'Horns', a: ['curly', 'nubs'] }, { k: 'f', n: 'Wings', a: ['fluffy', 'tiny bat'] }, { k: 's', n: 'Spots', a: ['freckles', 'plain'] },
   { k: 't', n: 'Tail tip', a: ['heart', 'leaf'] }, { k: 'g', n: 'Glitter', a: ['no sparkle', 'sparkly'] },
 ];
-const CODE = { P: 'AC', B: 'AG', Y: 'AT', H: 'CA', h: 'CG', F: 'GA', f: 'GC', S: 'TA', s: 'TC', T: 'CT', t: 'CC', G: 'GT', g: 'GG', '*': 'TT', '-': 'TG', W: 'AA' };
+const CODE = { P: 'GCA', B: 'GCT', Y: 'GCG', N: 'GCC', H: 'CAT', h: 'CAC', F: 'TTA', f: 'TTG', S: 'AGT', s: 'AGC', T: 'ACA', t: 'ACG', G: 'GGA', g: 'GGT', '*': 'TAC', '-': 'TAT', W: 'TGG' };
 const colorOf = c => COLORS[[...c].sort().join('')];
 const showsDom = pair => pair.some(a => a === a.toUpperCase());
 const hasStar = (z, sex) => sex === 'F' ? z[0] === '*' : z.every(a => a === '*');
@@ -122,7 +123,8 @@ function pheno(g, sex) {
 }
 function randomGenes(sex) {
   const al = (U, l, pU = .5) => [0, 0].map(() => Math.random() < pU ? U : l);
-  return { c: [pick('PBY'), pick('PBY')], h: al('H', 'h'), f: al('F', 'f'), s: al('S', 's'), t: al('T', 't'), g: al('G', 'g', .7),
+  const col = () => Math.random() < .12 ? 'N' : pick('PBY');   // midnight is the rare one
+  return { c: [col(), col()], h: al('H', 'h'), f: al('F', 'f'), s: al('S', 's'), t: al('T', 't'), g: al('G', 'g', .7),
     z: (sex === 'F' ? [0] : [0, 0]).map(() => Math.random() < .3 ? '*' : '-') };
 }
 function cross(mom, dad, sex) {   // mom is ZW, dad is ZZ
@@ -173,41 +175,112 @@ function shade(hex, amt) {   // amt < 0 darkens, > 0 lightens toward white
   const n = parseInt(hex.slice(1), 16), ch = [n >> 16, (n >> 8) & 255, n & 255];
   return '#' + ch.map(c => Math.round(amt < 0 ? c * (1 + amt) : c + (255 - c) * amt).toString(16).padStart(2, '0')).join('');
 }
-function dragonSVG(d, { sleep = false, hat = isBirthday(d) } = {}) {
-  const p = pheno(d.genes, d.sex), c = p.color[1], dk = shade(c, -.28), lt = shade(c, .55), horn = '#fff4e0';
-  const tip = p.t === 'heart'
-    ? `<path d="M0 3C-4 0-4-4-1.5-4 0-4 0-2.5 0-2.5S0-4 1.5-4C4-4 4 0 0 3Z" transform="translate(89 50) scale(1.7)" fill="${dk}"/>`
-    : `<path d="M0 0Q6-6 0-12Q-6-6 0 0Z" transform="translate(88 56) rotate(25)" fill="${dk}"/>`;
-  const wings = p.f === 'fluffy'
-    ? `<g fill="${lt}" stroke="${dk}" stroke-width=".8"><circle cx="70" cy="47" r="7"/><circle cx="77" cy="42" r="6"/><circle cx="80" cy="50" r="5"/></g>`
-    : `<path d="M62 52Q66 36 73 33Q73 40 78 39Q77 45 81 47Q71 50 62 52Z" fill="${lt}" stroke="${dk}" stroke-width=".8" stroke-linejoin="round"/>`;
-  const horns = p.h === 'curly'
-    ? `<g fill="none" stroke="${horn}" stroke-width="3.6" stroke-linecap="round"><path d="M31 20C27 12 33 7 36 11 38 14 34 15 34 13"/><path d="M49 18C51 10 57 9 58 13 58 16 54 16 55 14"/></g>
-       <g fill="none" stroke="${dk}" stroke-width=".6" opacity=".5"><path d="M31 20C27 12 33 7 36 11"/><path d="M49 18C51 10 57 9 58 13"/></g>`
-    : `<g fill="${horn}" stroke="${dk}" stroke-width=".7" stroke-linejoin="round"><path d="M29 21 31 12 36 19Z"/><path d="M47 18 51 10 54 18Z"/></g>`;
-  const eyes = sleep
-    ? `<g fill="none" stroke="#2b2320" stroke-width="1.3" stroke-linecap="round"><path d="M31 36q3 2 6 0"/><path d="M45 36q3 2 6 0"/></g>`
-    : `<ellipse cx="34" cy="35" rx="4" ry="5" fill="#2b2320"/><ellipse cx="48" cy="35" rx="4" ry="5" fill="#2b2320"/>
-       <circle cx="35.4" cy="33.2" r="1.6" fill="#fff"/><circle cx="49.4" cy="33.2" r="1.6" fill="#fff"/><circle cx="33" cy="37.2" r=".7" fill="#fff"/><circle cx="47" cy="37.2" r=".7" fill="#fff"/>`;
-  const spots = p.s === 'freckles' ? `<g fill="${dk}" opacity=".35"><circle cx="52" cy="25" r="1.6"/><circle cx="56" cy="30" r="1.2"/><circle cx="62" cy="58" r="1.8"/><circle cx="68" cy="64" r="1.4"/><circle cx="60" cy="71" r="1.2"/></g>` : '';
-  const star = p.star ? `<path d="M42 21l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : '';
-  const glit = p.g === 'sparkly' ? `<g class="glit" fill="#ffe27a" stroke="#fff" stroke-width=".6">${[[16, 22], [86, 30], [22, 74], [80, 80], [62, 16]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>` : '';
-  const aura = d.rare ? `<ellipse class="aura" cx="52" cy="52" rx="46" ry="40" fill="${RARE[d.rare][1]}" opacity=".35"/>` : '';
-  const party = hat ? `<path d="M37 17 43-1 50 15Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width=".8"/><circle cx="43" cy="-1" r="2.4" fill="#fbe0a0"/>` : '';
-  return `<svg viewBox="0 -5 100 95" class="dragon" aria-hidden="true">${aura}
-    <path d="M66 68Q86 76 88 54" fill="none" stroke="${dk}" stroke-width="9" stroke-linecap="round"/><path d="M66 68Q86 76 88 54" fill="none" stroke="${c}" stroke-width="6.5" stroke-linecap="round"/>${tip}
-    ${wings}
-    <ellipse cx="45" cy="80" rx="6" ry="3.5" fill="${dk}"/><ellipse cx="61" cy="80" rx="6" ry="3.5" fill="${dk}"/>
-    <ellipse cx="54" cy="64" rx="20" ry="16" fill="${c}" stroke="${dk}"/><ellipse cx="50" cy="68" rx="11" ry="10" fill="#fff" opacity=".55"/>
-    <ellipse cx="40" cy="65" rx="3.5" ry="5" fill="${c}" stroke="${dk}" stroke-width=".8"/>
-    ${horns}
-    <circle cx="40" cy="38" r="22" fill="${c}" stroke="${dk}"/>
-    <ellipse cx="27" cy="45" rx="10" ry="7.5" fill="${lt}" stroke="${dk}" stroke-width=".8"/><circle cx="23" cy="44" r=".9" fill="${dk}"/><circle cx="27.5" cy="43" r=".9" fill="${dk}"/>
-    ${eyes}
-    <ellipse cx="29" cy="41" rx="3.2" ry="1.8" fill="#f4a6b6" opacity=".75"/><ellipse cx="53" cy="42" rx="3.2" ry="1.8" fill="#f4a6b6" opacity=".75"/>
-    <path d="M32 49q2 2 4 0" fill="none" stroke="#2b2320" stroke-width=".9" stroke-linecap="round"/>
-    ${spots}${star}${party}${glit}</svg>`;
+const mix = (a, b, t) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A = p(a), B = p(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+const POSES = ['stand', 'wave', 'cheer', 'sit', 'sleep', 'fly', 'egg', 'heart', 'wink', 'shy'];
+const POSE_NAMES = { stand: 'Standing', wave: 'Waving', cheer: 'Cheering', sit: 'Sitting', sleep: 'Napping', fly: 'Flying', egg: 'Peeking from its egg', heart: 'Holding a heart', wink: 'Winking', shy: 'Feeling shy' };
+const DRAG = {};   // id -> dragon, so hovering can redraw it in a new pose
+const ARMS = {
+  stand: ['M47 74Q41 82 44 90', 'M73 74Q79 82 76 90'], wave: ['M47 74Q41 82 44 90', 'M73 74Q91 70 91 52'], cheer: ['M47 74Q34 66 36 52', 'M73 74Q86 66 84 52'],
+  sit: ['M47 74Q43 84 50 90', 'M73 74Q77 84 70 90'], sleep: ['M47 76Q46 86 54 88', 'M73 76Q74 86 66 88'], fly: ['M47 74Q36 76 34 84', 'M73 74Q84 76 86 84'],
+  egg: ['M46 77Q38 81 41 86', 'M74 77Q82 81 79 86'], heart: ['M47 74Q46 86 55 87', 'M73 74Q74 86 65 87'], wink: ['M47 74Q41 82 44 90', 'M73 74Q83 80 79 89'],
+  shy: ['M47 74Q36 68 42 60', 'M73 74Q84 68 78 60'],
+};
+function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
+  DRAG[d.id] = d;
+  const P = pheno(d.genes, d.sex), mt = mainTrait(d.traits), c = P.color[1], dark = P.color[0] === 'midnight';
+  const ol = mix(shade(c, -.5), '#5a3a2e', dark ? .15 : .45);   // outline: a deep version of the body color, warmed toward brown
+  const belly = mix(c, '#fff6e6', dark ? .45 : .72), ridge = shade(c, -.14), eye = dark ? '#1c1730' : '#4a2e22';
+  const wingFill = P.f === 'fluffy' ? '#fffaf6' : mix(c, '#ffffff', .35);
+  const S = `stroke="${ol}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"`;
+  const limb = (path, w = 8.5) => `<path d="${path}" fill="none" stroke="${ol}" stroke-width="${w}" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${c}" stroke-width="${w - 3.6}" stroke-linecap="round"/>`;
+  const low = pose === 'sit' || pose === 'sleep', lift = { sit: 5, sleep: 9, fly: -8, egg: 2 }[pose] || 0;
+
+  const wingR = P.f === 'fluffy'
+    ? `<path d="M73 70Q90 52 106 58Q101 62 104 67Q97 67 98 72Q91 71 90 77Q83 74 76 78Z" fill="${wingFill}" ${S}/><path d="M80 70Q90 64 99 64M82 74Q89 71 95 71" fill="none" stroke="${ol}" stroke-width="1" opacity=".5"/>`
+    : `<path d="M73 70Q88 48 104 52Q100 59 103 65Q95 63 94 71Q87 68 85 76Q80 72 75 78Z" fill="${wingFill}" ${S}/><path d="M76 70L101 54M78 73L94 66M80 76L86 70" stroke="${ol}" stroke-width="1" opacity=".45"/>`;
+  const wt = pose === 'fly' ? 'translate(74 72) rotate(-20) scale(1.3) translate(-74 -72)' : '';
+  const wings = `<g transform="${wt}">${wingR}</g><g transform="translate(120 0) scale(-1 1)"><g transform="${wt}">${wingR}</g></g>`;
+
+  const [tp, tx, ty, ta] = low ? ['M70 102Q52 116 32 106', 32, 106, -110] : ['M72 96Q94 104 101 88', 101, 88, 20];
+  const tipShape = P.t === 'heart' ? `<path d="M0 4C-6 0-6-6-2.2-6 0-6 0-3.6 0-3.6S0-6 2.2-6C6-6 6 0 0 4Z" fill="${ridge}" ${S} stroke-width="1.6"/>`
+    : `<path d="M0 2Q8-6 0-14Q-8-6 0 2Z" fill="${ridge}" ${S} stroke-width="1.6"/>`;
+  const tail = pose === 'egg' ? '' : `${limb(tp, 11)}<g transform="translate(${tx} ${ty}) rotate(${ta})">${tipShape}</g>`;
+
+  const feetBack = pose === 'egg' || low ? '' : pose === 'fly'
+    ? `<ellipse cx="52" cy="106" rx="5" ry="4" fill="${c}" ${S}/><ellipse cx="68" cy="107" rx="5" ry="4" fill="${c}" ${S}/>`
+    : `<ellipse cx="50" cy="105" rx="8" ry="4.6" fill="${c}" ${S}/><ellipse cx="70" cy="105" rx="8" ry="4.6" fill="${c}" ${S}/><path d="M47 107v-2M51 107v-2M67 107v-2M71 107v-2" stroke="${ol}" stroke-width="1.2" stroke-linecap="round"/>`;
+  const feetFront = low ? `<ellipse cx="49" cy="105" rx="8" ry="6" fill="${c}" ${S}/><ellipse cx="71" cy="105" rx="8" ry="6" fill="${c}" ${S}/>
+    <ellipse cx="49" cy="106" rx="4" ry="3" fill="${belly}"/><ellipse cx="71" cy="106" rx="4" ry="3" fill="${belly}"/>` : '';
+  const body = `<path d="M60 62C44 62 40 80 42 92 44 103 52 107 60 107 68 107 76 103 78 92 80 80 76 62 60 62Z" fill="${c}" ${S}/>
+    <path d="M60 70C51 70 49 82 50 92 51 100 55 103 60 103 65 103 69 100 70 92 71 82 69 70 60 70Z" fill="${belly}"/>
+    <path d="M53 80Q60 83 67 80M51 88Q60 91 69 88M52 96Q60 99 68 96" fill="none" stroke="${ol}" stroke-width="1.2" opacity=".25"/>
+    ${P.s === 'freckles' ? `<g fill="${ol}" opacity=".3"><circle cx="45" cy="84" r="1.3"/><circle cx="46" cy="90" r="1"/><circle cx="75" cy="84" r="1.3"/><circle cx="74" cy="90" r="1"/></g>` : ''}`;
+
+  const horns = P.h === 'curly'
+    ? `<g fill="none" stroke-linecap="round"><path d="M44 31C39 22 45 17 48 21 50 24 46 25 46 23" stroke="${ol}" stroke-width="6"/><path d="M44 31C39 22 45 17 48 21 50 24 46 25 46 23" stroke="#fff4e0" stroke-width="3"/>
+       <path d="M76 31C81 22 75 17 72 21 70 24 74 25 74 23" stroke="${ol}" stroke-width="6"/><path d="M76 31C81 22 75 17 72 21 70 24 74 25 74 23" stroke="#fff4e0" stroke-width="3"/></g>`
+    : `<g fill="#fff4e0" ${S} stroke-width="1.6"><path d="M41 32 43 21 50 29Z"/><path d="M79 32 77 21 70 29Z"/></g>`;
+  const eyesOpen = (dx = 0, ry = 4.6) => [50, 70].map(x => `<ellipse cx="${x + dx}" cy="49" rx="3.8" ry="${ry}" fill="${eye}"/><circle cx="${x + dx + 1.4}" cy="47.2" r="1.5" fill="#fff"/><circle cx="${x + dx - 1}" cy="51" r=".7" fill="#fff"/>`).join('');
+  const arc = (x, up) => `<path d="M${x - 4} 50q4 ${up ? -5 : 3} 8 0" fill="none" stroke="${eye}" stroke-width="2" stroke-linecap="round"/>`;
+  const eyes = { cheer: arc(50, 1) + arc(70, 1), heart: arc(50, 1) + arc(70, 1), sleep: arc(50, 0) + arc(70, 0), shy: eyesOpen(-2),
+    wink: eyesOpen().split('<ellipse').slice(0, 2).join('<ellipse').replace(/<ellipse$/, '') + arc(70, 1), egg: eyesOpen(0, 5.3) }[pose] || eyesOpen();
+  const mouth = { wave: 'open', cheer: 'open', egg: 'open', sleep: 'o', wink: 'tongue' }[pose] || 'smile';
+  const mouthSvg = mouth === 'open' ? `<path d="M56 60q4 6.5 8 0Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
+    : mouth === 'o' ? `<circle cx="60" cy="62" r="1.4" fill="none" stroke="${eye}" stroke-width="1.2"/>`
+    : `<path d="M56 61q4 3.5 8 0" fill="none" stroke="${eye}" stroke-width="1.6" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M60.5 62.6q1.6 3.6 3.2 0" fill="#f29aab"/>' : ''}`;
+  // one accessory per main trait, so dragons of different personalities look different
+  const ACC = {
+    builder: `<path d="M35 36Q60 28 85 36" fill="none" stroke="#a57b62" stroke-width="3"/><circle cx="51" cy="33" r="5" fill="#cfeaf7" ${S} stroke-width="1.6"/><circle cx="69" cy="33" r="5" fill="#cfeaf7" ${S} stroke-width="1.6"/><circle cx="52.5" cy="31.5" r="1.4" fill="#fff"/><circle cx="70.5" cy="31.5" r="1.4" fill="#fff"/>`,
+    seeker: `<g fill="#fff3a0" stroke="#e8c860" stroke-width=".6">${[[45, 40], [76, 38], [40, 52]].map(([x, y]) => `<path d="M${x} ${y - 3}l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/>`).join('')}</g>`,
+    steady: `<path d="M60 26V17" stroke="#6fa86f" stroke-width="2" stroke-linecap="round"/><path d="M60 19Q52 12 50 18Q55 22 60 19ZM60 18Q67 9 71 14Q67 20 60 18Z" fill="#9fd49a" stroke="#5f9a5f" stroke-width="1.2"/>`,
+    leader: `<path d="M50 28 49 17 55 22 60 14 65 22 71 17 70 28Z" fill="#ffd96b" stroke="#d9a93a" stroke-width="1.4" stroke-linejoin="round"/><circle cx="60" cy="22" r="1.6" fill="#f48aa5"/>`,
+    connector: '',
+    original: `<g transform="translate(83 31)"><g fill="#ffc2d4" stroke="#e98aa8" stroke-width=".8">${[0, 72, 144, 216, 288].map(a => `<ellipse cx="0" cy="-4" rx="2.6" ry="4" transform="rotate(${a})"/>`).join('')}</g><circle r="1.6" fill="#ffd96b"/></g>`,
+    recharge: `<path d="M38 34Q50 12 74 22Q66 24 70 30Q56 26 38 34Z" fill="#cfd8ff" stroke="${ol}" stroke-width="1.4" stroke-linejoin="round"/><path d="M45 29l5-4M53 25l5-3M61 23l4-1" stroke="#fff" stroke-width="1.6"/><circle cx="76" cy="21" r="3.2" fill="#fff" stroke="${ol}" stroke-width="1.2"/>`,
+  };
+  const scarf = mt === 'connector' ? `<path d="M45 66Q60 74 75 66L75 70Q60 78 45 70Z" fill="#8ec5ec" stroke="${ol}" stroke-width="1.4" stroke-linejoin="round"/><path d="M68 71 72 82 66 80Z" fill="#8ec5ec" stroke="${ol}" stroke-width="1.4" stroke-linejoin="round"/>` : '';
+  const tilt = { sleep: 'rotate(-10 60 64)', shy: 'rotate(6 60 64)', heart: 'rotate(-4 60 64)' }[pose] || '';
+  const head = `<g transform="${tilt}">
+    <path d="M34 48 26 46 33 42 27 37 35 38ZM86 48 94 46 87 42 93 37 85 38Z" fill="${c}" ${S} stroke-width="1.6"/>
+    ${horns}<path d="M51 28 55 18 59 27ZM58 27 62 15 66 27ZM65 28 69 19 71 30Z" fill="${ridge}" ${S} stroke-width="1.6"/>
+    <ellipse cx="60" cy="47" rx="27" ry="23" fill="${c}" ${S}/>
+    ${eyes}<circle cx="57.5" cy="56.5" r=".9" fill="${ol}"/><circle cx="62.5" cy="56.5" r=".9" fill="${ol}"/>${mouthSvg}
+    <ellipse cx="43" cy="57" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/><ellipse cx="77" cy="57" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/>
+    ${pose === 'shy' ? `<path d="M40 54l1.5 2M43 53.5l1.5 2M77 53.5l-1.5 2M80 54l-1.5 2" stroke="#e07a9a" stroke-width="1"/>` : ''}
+    ${P.s === 'freckles' ? `<g fill="${ol}" opacity=".35"><circle cx="40" cy="45" r="1"/><circle cx="42" cy="49" r=".9"/><circle cx="80" cy="45" r="1"/><circle cx="78" cy="49" r=".9"/></g>` : ''}
+    ${P.star ? `<path d="M60 33l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : ''}
+    ${hat ? `<path d="M50 27 59 4 68 26Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width="1.2" stroke-linejoin="round"/><circle cx="59" cy="4" r="3" fill="#fbe0a0"/>` : ACC[mt]}</g>`;
+  const egg = pose === 'egg' ? `<path d="M32 84 38 78 45 85 52 77 60 85 68 77 75 85 82 78 88 84Q91 113 60 114 29 113 32 84Z" fill="#fffaf2" ${S}/>
+    <circle cx="46" cy="98" r="2.5" fill="${c}" opacity=".7"/><circle cx="72" cy="104" r="3" fill="${c}" opacity=".7"/><circle cx="66" cy="94" r="1.8" fill="${c}" opacity=".7"/>
+    <path d="M52 93l4 4-2 4" fill="none" stroke="${ol}" stroke-width="1.2"/>` : '';
+  const arms = ARMS[pose].map(p => limb(p)).join('');
+  const prop = pose === 'heart' ? `<path d="M60 96C51 90 51 82 55.5 82 58 82 60 84.5 60 84.5S62 82 64.5 82C69 82 69 90 60 96Z" fill="#f48aa5" ${S} stroke-width="1.6"/>` : '';
+  const extra = {
+    sleep: `<text x="84" y="34" font-size="9" fill="${ol}" font-family="Figtree,sans-serif">z</text><text x="91" y="25" font-size="12" fill="${ol}" font-family="Figtree,sans-serif">Z</text>`,
+    fly: `<path d="M48 116q4-3 8 0M64 116q4-3 8 0" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
+    wave: `<path d="M92 46q3 4 0 8M96 43q4 6 0 12" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
+    cheer: `<g fill="#ffd96b">${[[28, 40], [92, 40], [24, 58]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>`,
+  }[pose] || '';
+  const around = mt === 'original' ? `<g fill="#ffc2d4" opacity=".85">${[[16, 30], [104, 44], [12, 76], [108, 98]].map(([x, y], i) => `<ellipse cx="${x}" cy="${y}" rx="2.4" ry="3.6" transform="rotate(${i * 50} ${x} ${y})"/>`).join('')}</g>`
+    : mt === 'connector' ? `<g fill="none" stroke="#8ec5ec" stroke-width="1.8" stroke-linecap="round"><path d="M104 30a4 4 0 1 1-4-4"/><path d="M110 50a4 4 0 1 1-4-4"/><path d="M14 40a4 4 0 1 0 4-4"/></g>`
+    : mt === 'seeker' ? `<g fill="#fff3a0" stroke="#e8c860" stroke-width=".6">${[[18, 26], [104, 70]].map(([x, y]) => `<path d="M${x} ${y - 4}l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2z"/>`).join('')}</g>` : '';
+  const glit = P.g === 'sparkly' ? `<g class="glit" fill="#ffe27a" stroke="#fff" stroke-width=".6">${[[20, 60], [100, 30], [96, 84], [26, 98], [64, 10]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>` : '';
+  const aura = d.rare ? `<ellipse class="aura" cx="60" cy="64" rx="54" ry="52" fill="${RARE[d.rare][1]}" opacity=".35"/>` : '';
+  return `<svg viewBox="0 0 120 120" class="dragon" aria-hidden="true">${aura}<ellipse cx="60" cy="112" rx="${pose === 'fly' ? 14 : 22}" ry="3" fill="#000" opacity=".07"/>${around}
+    <g transform="translate(0 ${lift})">${wings}${tail}${feetBack}${body}${feetFront}${scarf}${head}${egg}${arms}${prop}</g>${extra}${glit}</svg>`;
 }
+// hovering (or tapping) any dragon picture redraws it in another pose; card pictures step through all 10 in order
+document.addEventListener('mouseover', e => {
+  const host = e.target.closest('[data-dragon]');
+  if (!host || (e.relatedTarget && host.contains(e.relatedTarget))) return;
+  const d = DRAG[host.dataset.dragon], svg = host.querySelector('svg.dragon');
+  if (!d || !svg) return;
+  const cur = host.dataset.pose || 'stand';
+  const next = host.dataset.cycle ? POSES[(POSES.indexOf(cur) + 1) % POSES.length] : pick(POSES.filter(p => p !== cur && p !== 'egg'));
+  host.dataset.pose = next; host.title = POSE_NAMES[next];
+  svg.outerHTML = dragonSVG(d, { pose: next });
+});
 function heptagon(tr) {
   const ks = TRAITS.map(t => t.k), max = Math.max(10, ...ks.map(k => tr[k]));
   const pt = (i, r) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 7; return [100 + r * Math.cos(a), 100 + r * Math.sin(a)]; };
@@ -262,7 +335,7 @@ function rollDie(dlg, chance) {
 const oddsHtml = (chance, parts) => `<p class="odds"><strong>${chance}%</strong> chance <span class="muted small">${parts.filter(Boolean).join(' · ')}</span></p>
   <p class="small muted">Roll ${chance} or lower to win.</p>`;
 async function askName(dlg, d, title) {
-  dlg.innerHTML = `<div class="dm-pic">${dragonSVG(d)}</div><h3>${title}</h3>
+  dlg.innerHTML = `<div class="dm-pic">${dragonSVG(d, { pose: 'cheer' })}</div><h3>${title}</h3>
     <p class="small">${d.sex === 'F' ? '♀ girl' : '♂ boy'} · ${TR[mainTrait(d.traits)].n}${d.rare ? ` · <span class="rare">✦ ${d.rare}</span>` : ''}</p>
     <label class="field" for="dmName">What will you call ${d.sex === 'F' ? 'her' : 'him'}?</label><input type="text" id="dmName" maxlength="24">
     <p class="row"><button data-v="ok">Welcome home</button><button class="ghost" data-v="later">Name later</button></p>`;
@@ -292,10 +365,10 @@ function tameFlow(task) {
     const chance = tameChance({ effort, close, imp, project: !!task.project, match });
     den.tamed = Object.fromEntries(Object.entries(den.tamed).filter(([, v]) => v === t));
     den.tamed[task.key] = t;
-    const dlg = modal(`<div class="dm-pic">${dragonSVG(d)}</div>
+    const dlg = modal(`<div class="dm-pic">${dragonSVG(d, { pose: 'egg' })}</div>
       <h3>A little ${TR[trait].n} dragon peeked out!</h3>
       ${rare ? `<p class="rare">✦ Ultra-rare: ${rare}, ${RARE[rare][0]}</p>` : ''}
-      ${oddsHtml(chance, [`${30 + 7 * (effort + close + imp - 3)}% from the task`, task.project && '+5% project', match && `+10% ${TR[trait].n} is your #1 today`])}
+      ${oddsHtml(chance, [`${10 + 2 * (effort + close + imp - 3)}% from the task`, task.project && '+3% project', match && `+5% ${TR[trait].n} is your #1 today`])}
       ${DIE}<p class="row center"><button data-v="roll">Roll</button></p>`);
     const go = await choice(dlg);
     const { roll, ok } = go ? await rollDie(dlg, chance) : { roll: 100, ok: false };
@@ -321,7 +394,7 @@ function breedPointRoll(streakDays) {
     if (!den.dragons.length) return;
     const chance = pointChance(streakDays);
     const dlg = modal(`<h3>Streak day ${streakDays}! 🔥</h3><p>Roll for a breeding point.</p>
-      ${oddsHtml(chance, ['40% base', `+${Math.min(50, 5 * streakDays)}% for your ${streakDays}-day streak`])}
+      ${oddsHtml(chance, ['12% base', `+${Math.min(18, 2 * streakDays)}% for your ${streakDays}-day streak`])}
       ${DIE}<p class="row center"><button data-v="roll">Roll</button></p>`);
     const go = await choice(dlg);
     const { roll, ok } = go ? await rollDie(dlg, chance) : { roll: 100, ok: false };
@@ -377,7 +450,7 @@ function showVisit(d, msg, trait) {
   document.querySelector('.visit')?.remove();
   const el = document.createElement('div');
   el.className = 'visit card'; el.setAttribute('role', 'status');
-  el.innerHTML = `<div class="v-pic">${dragonSVG(d)}</div><div><div class="kind">${esc(dname(d))} came to visit · ${stage(d)}</div>
+  el.innerHTML = `<div class="v-pic" data-dragon="${d.id}">${dragonSVG(d, { pose: 'wave' })}</div><div><div class="kind">${esc(dname(d))} came to visit · ${stage(d)}</div>
     <p>${esc(msg)}</p><p class="small muted">${TR[trait].n} +0.1 → ${d.traits[trait]}</p></div><button class="x" aria-label="Close">×</button>`;
   el.querySelector('.x').onclick = () => el.remove();
   document.body.append(el);
@@ -413,14 +486,16 @@ async function dragonOfDay() {
 async function fillDotd(el) {
   const r = await dragonOfDay().catch(() => null);
   if (!r || !el) return;
-  el.innerHTML = `<a class="dotd" href="#dragons"><span class="dotd-pic">${dragonSVG(r.d)}</span><span>
+  el.innerHTML = `<a class="dotd" href="#dragons"><span class="dotd-pic" data-dragon="${r.d.id}">${dragonSVG(r.d, { pose: 'wave' })}</span><span>
     <span class="kind">Dragon of the day</span><br><strong>${esc(dname(r.d))}</strong> <span class="muted small">the ${TR[mainTrait(r.d.traits)].n} dragon</span>
     <span class="small dotd-say">“${esc(r.intro)}”</span></span></a>`;
 }
 async function refreshMascot() {
   if (!window.mascot) return;
   const r = await dragonOfDay().catch(() => null);
-  if (r) window.mascot.set(dragonSVG(r.d), dname(r.d), HATCH[mainTrait(r.d.traits)]);
+  if (!r) return;
+  window.mascot.set(dragonSVG(r.d), dname(r.d), HATCH[mainTrait(r.d.traits)]);
+  document.getElementById('ram').dataset.dragon = r.d.id;
 }
 
 // ---------- 5. the Dragons tab ----------
@@ -436,7 +511,7 @@ async function viewDragons() {
     const p = pheno(d.genes, d.sex), mt = mainTrait(d.traits);
     const age = Math.max(0, daysUntil(today()) - daysUntil(d.hatched));
     return `<div class="card dcard" id="dc-${d.id}">
-      <div class="dc-pic">${dragonSVG(d)}</div>
+      <div class="dc-pic" data-dragon="${d.id}" data-cycle="1" title="Hover to change pose">${dragonSVG(d)}</div>
       <h3>${d.name ? esc(d.name) : `<button class="ghost small" data-name="${d.id}">Name me</button>`} <span class="sex">${d.sex === 'F' ? '♀' : '♂'}</span></h3>
       <p class="small"><span class="tag" style="background:${TR[mt].col}">${TR[mt].n}</span> ${d.rare ? `<span class="tag rare-tag">✦ ${d.rare}</span>` : ''} <span class="tag">${stage(d)}</span>
         ${d.points ? `<span class="tag">♥ ${d.points} breeding pt</span>` : ''}${isBirthday(d) ? ' <span class="tag">🎂 hatch day!</span>' : ''}</p>
@@ -467,7 +542,7 @@ async function viewDragons() {
     <div class="meadow ${sky}" aria-label="The meadow where your dragons play">
       <i class="sun"></i><i class="hill h1"></i><i class="hill h2"></i><i class="pond"></i>
       ${Array.from({ length: 14 }, (_, i) => `<i class="flower" style="left:${(i * 37 + 5) % 96}%;top:${58 + (i * 23) % 38}%">✿</i>`).join('')}
-      ${ds.map(d => `<button class="md" data-id="${d.id}" aria-label="${esc(dname(d))}">${dragonSVG(d)}<span class="zz">z z</span><span class="bub">♡ ○</span></button>`).join('')}
+      ${ds.map(d => `<button class="md" data-id="${d.id}" data-dragon="${d.id}" aria-label="${esc(dname(d))}">${dragonSVG(d, { pose: pick(['stand', 'sit', 'wave', 'wink']) })}<span class="bub">♡ ○</span></button>`).join('')}
     </div>
     <div class="split" style="margin-top:1.2rem">
       <div class="card"><h2>Breed</h2>
@@ -503,7 +578,7 @@ async function viewDragons() {
       const n = den.history.filter(h => h.k === 'tame' && h.d === today() && h.tr === k).length; return n > a[1] ? [k, n] : a; }, [null, 0])[0];
     const match = !!top && [mainTrait(m.traits), mainTrait(f.traits)].includes(top);
     const odds = offspringOdds(m.genes, f.genes);
-    info.innerHTML = `${oddsHtml(breedChance(match), ['50% base', match && `+10% a parent is ${TR[top].n}, your #1 today`])}
+    info.innerHTML = `${oddsHtml(breedChance(match), ['25% base', match && `+5% a parent is ${TR[top].n}, your #1 today`])}
       ${den.rested[key] === today() ? '<p class="small"><span class="tag warn">This pair is resting until tomorrow.</span></p>' : ''}
       <details class="small"><summary>What babies could look like</summary><ul class="facts">${Object.entries(odds).map(([g, o]) =>
         `<li><strong>${g}:</strong> ${Object.entries(o).filter(([, p]) => p).map(([v, p]) => `${p}% ${v}`).join(', ')}</li>`).join('')}</ul></details>`;
@@ -515,7 +590,7 @@ async function viewDragons() {
     drawInfo();
     document.getElementById('breed').onclick = () => enqueue(async () => {
       const { m, f, key, chance } = await drawInfo();
-      const dlg = modal(`<div class="dm-pair">${dragonSVG(m)}<span>♡</span>${dragonSVG(f)}</div><h3>${esc(dname(m))} + ${esc(dname(f))}</h3>
+      const dlg = modal(`<div class="dm-pair">${dragonSVG(m, { pose: 'heart' })}<span>♡</span>${dragonSVG(f, { pose: 'heart' })}</div><h3>${esc(dname(m))} + ${esc(dname(f))}</h3>
         ${oddsHtml(chance, [])}${DIE}<p class="row center"><button data-v="roll">Roll</button></p>`);
       const go = await choice(dlg);
       if (!go) return closeModal();
@@ -555,7 +630,8 @@ function startMeadow(el, ds) {
     b.style.left = x + '%'; b.style.top = y + '%'; b.style.zIndex = Math.round(y);
   };
   const spot = () => [4 + Math.random() * 82, 40 + Math.random() * 42];
-  const nap = (b, on) => { b.classList.toggle('nap', on); b.querySelector('svg').outerHTML = dragonSVG(byId[b.dataset.id], { sleep: on }); };
+  const strike = (b, pose) => { b.dataset.pose = pose; b.querySelector('svg').outerHTML = dragonSVG(byId[b.dataset.id], { pose }); };
+  const nap = (b, on) => { b.classList.toggle('nap', on); strike(b, on ? 'sleep' : 'stand'); };
   bodies.forEach(b => { place(b, ...spot()); b.onclick = () => document.getElementById('dc-' + b.dataset.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   if (matchMedia('(prefers-reduced-motion: reduce)').matches || !bodies.length) return;
   const flash = (b, cls, ms = 2400) => { b.classList.add(cls); setTimeout(() => b.classList.remove(cls), ms); };
@@ -565,13 +641,14 @@ function startMeadow(el, ds) {
     bodies.forEach(b => {
       const r = Math.random();
       if (b.classList.contains('nap')) { if (r < .3) nap(b, false); return; }
-      if (r < .4) { place(b, ...spot()); flash(b, 'walk'); }
+      if (r < .4) { strike(b, Math.random() < .25 ? 'fly' : 'stand'); place(b, ...spot()); flash(b, 'walk'); }
       else if (r < .5) nap(b, true);
-      else if (r < .65) flash(b, 'hop', 900);
+      else if (r < .6) { strike(b, 'cheer'); flash(b, 'hop', 900); }
+      else if (r < .75) strike(b, pick(['sit', 'wink', 'shy', 'wave']));
     });
     if (bodies.length > 1 && Math.random() < .3) {   // two of them play together
       const [a, c] = bodies.filter(b => !b.classList.contains('nap')).sort(() => Math.random() - .5);
-      if (a && c) { place(c, Math.min(88, parseFloat(a.style.left) + 9), parseFloat(a.style.top)); a.classList.toggle('flip', true); c.classList.toggle('flip', false); flash(a, 'play'); flash(c, 'play'); }
+      if (a && c) { place(c, Math.min(88, parseFloat(a.style.left) + 9), parseFloat(a.style.top)); a.classList.toggle('flip', true); c.classList.toggle('flip', false); strike(a, 'heart'); strike(c, pick(['wave', 'cheer'])); flash(a, 'play'); flash(c, 'play'); }
     }
   }, 3400);
 }
@@ -579,9 +656,9 @@ function startMeadow(el, ds) {
 // ---------- self-check (runs in demo mode; open the console) ----------
 function dragonSelfTest() {
   const ok = (c, m) => console.assert(c, 'dragon self-test: ' + m);
-  ok(tameChance({ effort: 1, close: 1, imp: 1 }) === 30, 'lowest task = 30%');
-  ok(tameChance({ effort: 3, close: 3, imp: 3, project: true, match: true }) === 87, 'highest = 87%');
-  ok(pointChance(1) === 45 && pointChance(20) === 90, 'point odds');
+  ok(tameChance({ effort: 1, close: 1, imp: 1 }) === 10, 'lowest task = 10%');
+  ok(tameChance({ effort: 3, close: 3, imp: 3, project: true, match: true }) === 30, 'highest = 30%');
+  ok(pointChance(1) === 14 && pointChance(20) === 30 && breedChance(true) === 30, 'point + breed odds cap at 30%');
   const gg = { c: ['P', 'P'], h: ['h', 'h'], f: ['f', 'f'], s: ['s', 's'], t: ['t', 't'], g: ['g', 'g'], z: ['*'] };
   const dad = { ...gg, c: ['B', 'B'], z: ['-', '-'] };
   for (let i = 0; i < 20; i++) {

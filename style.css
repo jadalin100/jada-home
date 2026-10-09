@@ -294,7 +294,7 @@ svg.dragon .aura { animation: aura 3s ease-in-out infinite; transform-box: fill-
 @keyframes aura { 50% { opacity: .15; transform: scale(1.06); } }
 
 .dotd { display: inline-flex; gap: .8rem; align-items: center; margin-top: 1.2rem; text-decoration: none; max-width: 38rem; }
-.dotd-pic { flex: 0 0 74px; height: 70px; }
+.dotd-pic { flex: 0 0 80px; height: 80px; }
 .dotd-say { display: block; margin-top: .2rem; font-style: italic; }
 .dotd + .quote, #dotd + .quote { margin-top: .6rem; }
 
@@ -312,7 +312,7 @@ svg.dragon .aura { animation: aura 3s ease-in-out infinite; transform-box: fill-
 .meadow .pond { left: 58%; top: 72%; width: 24%; height: 14%; border-radius: 50%; background: #bfe0f5; box-shadow: inset 0 3px 0 #d9eefb; }
 .meadow .flower { color: #f4a6b6; font-size: .9rem; opacity: .85; }
 .meadow .flower:nth-of-type(3n) { color: #fbe0a0; } .meadow .flower:nth-of-type(4n) { color: #fff; }
-.md { position: absolute; width: 96px; height: 90px; padding: 0; background: none; border: 0; border-radius: 0; cursor: pointer; transform: translate(-50%, -50%);
+.md { position: absolute; width: 96px; height: 96px; padding: 0; background: none; border: 0; border-radius: 0; cursor: pointer; transform: translate(-50%, -50%);
   transition: left 2.6s ease-in-out, top 2.6s ease-in-out; }
 .md svg { filter: drop-shadow(0 4px 3px rgba(60, 80, 60, .18)); }
 .md.flip svg { transform: scaleX(-1); }
@@ -320,18 +320,18 @@ svg.dragon .aura { animation: aura 3s ease-in-out infinite; transform-box: fill-
 .md.flip.walk svg { animation-name: bobFlip; }
 .md.hop svg { animation: hopUp .45s ease-in-out 2; }
 .md.flip.hop svg { animation-name: hopUpFlip; }
-.md .zz, .md .bub { position: absolute; top: -6px; right: 4px; font-size: .75rem; color: #6d6878; opacity: 0; transition: opacity .4s; pointer-events: none; }
-.md.nap .zz, .md.play .bub { opacity: 1; animation: floatUp 2s ease-in-out infinite; }
+.md .bub { position: absolute; top: -6px; right: 4px; font-size: .75rem; color: #6d6878; opacity: 0; transition: opacity .4s; pointer-events: none; }
+.md.play .bub { opacity: 1; animation: floatUp 2s ease-in-out infinite; }
 .md .bub { color: #e07a9a; }
 @keyframes bob { 50% { transform: translateY(-4px) rotate(-3deg); } }
 @keyframes bobFlip { 0%, 100% { transform: scaleX(-1); } 50% { transform: scaleX(-1) translateY(-4px) rotate(-3deg); } }
 @keyframes hopUp { 50% { transform: translateY(-16px); } }
 @keyframes hopUpFlip { 0%, 100% { transform: scaleX(-1); } 50% { transform: scaleX(-1) translateY(-16px); } }
 @keyframes floatUp { 50% { transform: translateY(-6px); } }
-@media (max-width: 640px) { .meadow { height: 260px; } .md { width: 66px; height: 62px; } }
+@media (max-width: 640px) { .meadow { height: 260px; } .md { width: 70px; height: 70px; } }
 
 .dgrid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-.dcard .dc-pic { width: 130px; height: 122px; margin: 0 auto .4rem; }
+.dcard .dc-pic { width: 150px; height: 150px; cursor: pointer; margin: 0 auto .4rem; }
 .dcard h3 { display: flex; align-items: center; gap: .5rem; }
 .dcard .sex { font-family: Figtree, sans-serif; font-size: 1rem; color: var(--ink-soft); }
 .dcard .tag { color: var(--ink); }
@@ -354,12 +354,12 @@ ul.facts li { margin: .2rem 0; }
 .dmodal h3 { margin: .4rem 0; }
 .dmodal .row { justify-content: center; }
 .dmodal input[type=text] { text-align: center; }
-.dm-pic { width: 150px; height: 140px; margin: 0 auto; animation: hopUp 1s ease-in-out 2; }
+.dm-pic { width: 160px; height: 160px; margin: 0 auto; animation: hopUp 1s ease-in-out 2; }
 .dm-pair { display: flex; align-items: center; justify-content: center; gap: .4rem; }
-.dm-pair svg { width: 100px; height: 94px; } .dm-pair span { font-size: 1.6rem; color: #e07a9a; }
+.dm-pair svg { width: 110px; height: 110px; } .dm-pair span { font-size: 1.6rem; color: #e07a9a; }
 .dm-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: .5rem; max-height: 50vh; overflow: auto; }
 .dm-pick button { text-transform: none; letter-spacing: 0; padding: .4rem; border-radius: 16px; }
-.dm-pick svg { width: 70px; height: 66px; margin: 0 auto; }
+.dm-pick svg { width: 72px; height: 72px; margin: 0 auto; }
 .dm-pick span { font-size: .75rem; }
 .odds { margin: .6rem 0 0; } .odds strong { font-size: 1.4rem; }
 .die { position: relative; width: 96px; height: 96px; margin: .8rem auto .4rem; }
@@ -372,11 +372,11 @@ ul.facts li { margin: .2rem 0; }
 
 .visit { position: fixed; right: 16px; bottom: 76px; z-index: 60; max-width: min(380px, calc(100vw - 32px)); display: flex; gap: .7rem; align-items: flex-start;
   background: var(--paper); box-shadow: 0 18px 40px -16px rgba(44, 42, 53, .4); animation: slideIn .4s ease-out; }
-.visit .v-pic { flex: 0 0 64px; height: 60px; }
+.visit .v-pic { flex: 0 0 70px; height: 70px; }
 .visit p { margin: .25rem 0; }
 @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } }
-#ram.dragon-mascot { width: 70px; height: 66px; }
-#ram.dragon-mascot .bubble { bottom: 70px; }
+#ram.dragon-mascot { width: 76px; height: 76px; }
+#ram.dragon-mascot .bubble { bottom: 78px; }
 @media (prefers-reduced-motion: reduce) { .dm-pic, .visit, svg.dragon .glit path, svg.dragon .aura { animation: none; } }
 @media (prefers-color-scheme: dark) { .meadow .flower:nth-of-type(4n) { color: #fbe0a0; } .dmodal input[type=text] { background: rgba(255,255,255,.08); } }
 .tag { white-space: nowrap; }
