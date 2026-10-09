@@ -107,6 +107,19 @@ async function allEntries() {
 function setMood(m) { document.body.dataset.mood = MOODS[m] ? m : 'calm'; }
 const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; };
 
+// To-dos are rated on 3 scales: effort and importance (1-3 each) and an optional due date.
+// Home shows Now -> This week -> Later, then Big -> Quick inside each, then High -> Low importance.
+const EFFORT = ['Quick', 'Solid', 'Big'], IMP = ['Low', 'Medium', 'High'], LEVELS = ['Now', 'This week', 'Later'];
+const dueLevel = it => 3 - closeness(it.due);   // closeness() lives in dragons.js: 3 = today/tomorrow/overdue, 2 = this week, 1 = later
+const dueText = d => { const n = daysUntil(d); return n < 0 ? 'overdue' : n === 0 ? 'today' : n === 1 ? 'tomorrow' : new Date(d + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+function rankTodos(todos) {
+  const rows = todos.map((it, i) => ({ it, i, lv: dueLevel(it), ef: it.effort || 2, im: it.imp || 2 }))
+    .sort((a, b) => a.lv - b.lv || b.ef - a.ef || b.im - a.im);
+  return rows.map((r, n) => ({ ...r,
+    head: n === 0 || rows[n - 1].lv !== r.lv ? LEVELS[r.lv] : '',
+    sub: n === 0 || rows[n - 1].lv !== r.lv || rows[n - 1].ef !== r.ef ? EFFORT[r.ef - 1] : '' }));
+}
+
 async function viewHome() {
   const t = today();
   const [inbox, projects] = await Promise.all([readJSON('data/inbox.json', []), readJSON('data/projects.json', [])]);
@@ -126,16 +139,25 @@ async function viewHome() {
     <div class="hero">
       <div class="date">${esc(prettyDate(t))}</div>
       <h1>${greeting()},<br>Jada.</h1>
+      <div id="dotd"></div>
       <p class="quote">${quote ? esc(quote) + (who ? `<cite>— ${esc(who)}</cite>` : '') : '<span class="muted">Your quote lands here with the 7am email.</span>'}</p>
     </div>
 
     <div class="split">
       <div class="card">
         <h2>To-do</h2>
-        <ul class="checks" id="anytime">${todos.map((it, i) => `
-          <li><input type="checkbox" id="at${i}" data-a="${i}" ${it.done ? 'checked' : ''}><label for="at${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}</label>
+        <ul class="checks" id="anytime">${rankTodos(todos).map(({ it, i, head, sub }) => `${head ? `<li class="lvl">${head}</li>` : ''}${sub ? `<li class="sub">${sub}</li>` : ''}
+          <li><input type="checkbox" id="at${i}" data-a="${i}" ${it.done ? 'checked' : ''}><label for="at${i}" class="${it.done ? 'done' : ''}">${esc(it.t)}
+            ${it.project ? `<span class="tag">${esc((projects.find(p => p.id === it.project) || {}).name || it.project)}</span>` : ''}</label>
+          <span class="rate"><button class="chip" data-cyc="effort" data-i="${i}" title="Time and effort (tap to change)">${EFFORT[(it.effort || 2) - 1]}</button><button class="chip" data-cyc="imp" data-i="${i}" title="Importance (tap to change)">${IMP[(it.imp || 2) - 1]}</button><button class="chip" data-due="${i}" title="Due date (tap to change)">${it.due ? dueText(it.due) : 'no date'}</button></span>
           <button class="x" data-del="${i}" aria-label="Delete ${esc(it.t)}">×</button></li>`).join('')}</ul>
         <div class="row"><input type="text" id="newTodo" placeholder="Add a to-do and press Enter" aria-label="New to-do"></div>
+        <div class="row addrate">
+          <select id="ntEffort" aria-label="Time and effort">${EFFORT.map((l, i) => `<option value="${i + 1}" ${i === 1 ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          <input type="date" id="ntDue" aria-label="Due date (optional)">
+          <select id="ntImp" aria-label="Importance">${IMP.map((l, i) => `<option value="${i + 1}" ${i === 1 ? 'selected' : ''}>${l} imp.</option>`).join('')}</select>
+          <select id="ntProj" aria-label="Project (optional)"><option value="">No project</option>${projects.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select>
+        </div>
         ${todos.some(x => x.done) ? '<p><button class="ghost" id="clearDone">Clear checked</button></p>' : ''}
       </div>
       <div class="card">
@@ -193,10 +215,29 @@ async function viewHome() {
     const c = inbox.splice(+b.dataset.dismiss, 1)[0]; await saveInbox(`Dismiss ${c.name}`); route();
   });
   const saveTodos = async msg => { await save('data/todos.json', JSON.stringify(todos, null, 1) + '\n', msg); route(); };
-  $view.querySelectorAll('[data-a]').forEach(cb => cb.onchange = () => { todos[cb.dataset.a].done = cb.checked; saveTodos('Check off to-do'); });
+  $view.querySelectorAll('[data-a]').forEach(cb => cb.onchange = async () => {
+    const it = todos[cb.dataset.a]; it.done = cb.checked;
+    await saveTodos('Check off to-do');
+    if (cb.checked) tameFlow({ key: `todo|${it.t}|${it.added || ''}`, text: it.t, effort: it.effort || 2, due: it.due, imp: it.imp || 2, project: it.project });
+  });
   $view.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { todos.splice(b.dataset.del, 1); saveTodos('Delete to-do'); });
+  $view.querySelectorAll('[data-cyc]').forEach(b => b.onclick = () => { const it = todos[b.dataset.i], f = b.dataset.cyc; it[f] = (it[f] || 2) % 3 + 1; saveTodos(`Change ${f}`); });
+  $view.querySelectorAll('[data-due]').forEach(b => b.onclick = () => {
+    const it = todos[b.dataset.due], v = prompt('Due date (YYYY-MM-DD), blank for none', it.due || today());
+    if (v === null) return;
+    if (v.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) return toast('Use the format 2026-10-15.');
+    if (v.trim()) it.due = v.trim(); else delete it.due;
+    saveTodos('Change due date');
+  });
   const nt = document.getElementById('newTodo');
-  nt.onkeydown = ev => { if (ev.key === 'Enter' && nt.value.trim()) { todos.push({ t: nt.value.trim(), done: false, added: t }); saveTodos('Add to-do'); } };
+  nt.onkeydown = ev => {
+    if (ev.key !== 'Enter' || !nt.value.trim()) return;
+    const it = { t: nt.value.trim(), done: false, added: t, effort: +document.getElementById('ntEffort').value, imp: +document.getElementById('ntImp').value };
+    const due = document.getElementById('ntDue').value, proj = document.getElementById('ntProj').value;
+    if (due) it.due = due; if (proj) it.project = proj;
+    todos.push(it); saveTodos('Add to-do');
+  };
+  fillDotd(document.getElementById('dotd'));
   const cd = document.getElementById('clearDone');
   if (cd) cd.onclick = () => { todos.splice(0, todos.length, ...todos.filter(x => !x.done)); saveTodos('Clear checked to-dos'); };
   bindStudyBtns(study);
@@ -212,6 +253,7 @@ function bindStudyBtns(study) {
     const tr = study.tracks[b.dataset.day];
     (tr.days ||= []).push(today());
     await save('data/study.json', JSON.stringify(study, null, 1) + '\n', `${tr.name} studied ${today()}`); route();
+    breedPointRoll(streak(tr.days));
   });
 }
 
@@ -394,14 +436,15 @@ async function viewProjects() {
     </section>`;
 
   document.getElementById('saveLogs').onclick = async () => {
-    let n = 0;
+    let n = 0; const said = [], names = [];
     for (const [i, p] of projects.entries()) {
       const v = document.getElementById('log' + i).value.trim();
       if (v === (logs[i][t] || '')) continue;
-      if (v) logs[i][t] = v; else delete logs[i][t];
+      if (v) { logs[i][t] = v; said.push(v); names.push(p.name); } else delete logs[i][t];
       await saveLog(p.id, logs[i], `Work log ${t}: ${p.name}`); n++;
     }
     if (!n) toast('Nothing new to save.');
+    if (said.length) dragonVisit(said.join(' '), names.join(' & '));
   };
   document.getElementById('addP').onclick = async () => {
     const name = document.getElementById('newP').value.trim();
@@ -474,6 +517,7 @@ async function viewProject(id) {
     const v = document.getElementById('logToday').value.trim();
     if (v) log[t] = v; else delete log[t];
     await saveLog(id, log, `Work log ${t}: ${p.name}`); route();
+    if (v) dragonVisit(v, p.name);
   };
   document.getElementById('saveP').onclick = async () => {
     for (const f of ['name', 'kind', 'blurb', 'status', 'next', 'folder']) p[f] = document.getElementById('p-' + f).value.trim();
@@ -522,7 +566,10 @@ async function viewStudy() {
   const persist = msg => save('data/study.json', JSON.stringify(study, null, 1) + '\n', msg);
   const listOf = el => study.tracks[el.dataset.t ?? el.dataset.add ?? el.dataset.rm].checklists[el.dataset.l];
   $view.querySelectorAll('[data-jump]').forEach(a => a.onclick = ev => { ev.preventDefault(); document.getElementById('track-' + a.dataset.jump).scrollIntoView({ behavior: 'smooth' }); });
-  $view.querySelectorAll('.checks input[data-t]').forEach(cb => cb.onchange = async () => { listOf(cb)[cb.dataset.i].done = cb.checked; await persist('Study checklist'); route(); });
+  $view.querySelectorAll('.checks input[data-t]').forEach(cb => cb.onchange = async () => {
+    const it = listOf(cb)[cb.dataset.i]; it.done = cb.checked; await persist('Study checklist'); route();
+    if (cb.checked) tameFlow({ key: `study|${study.tracks[cb.dataset.t].id}|${cb.dataset.l}|${it.t}`, text: it.t, kind: 'study' });
+  });
   $view.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { listOf(b).splice(b.dataset.i, 1); await persist('Remove study topic'); route(); });
   $view.querySelectorAll('[data-add]').forEach(inp => inp.onkeydown = async ev => {
     if (ev.key !== 'Enter' || !inp.value.trim()) return;
@@ -564,7 +611,10 @@ async function viewClubs() {
       c.links = el.querySelector('[data-f=links]').value.split('\n').map(l => l.split('|').map(s => s.trim())).filter(([a, b]) => a && b).map(([label, url]) => ({ label, url }));
     };
     el.querySelector('[data-save]').onclick = async () => { grab(); await persist(`Update ${c.name}`); };
-    el.querySelectorAll('[data-todo]').forEach(cb => cb.onchange = async () => { grab(); c.todo[cb.dataset.todo].done = cb.checked; await persist(`${c.name} to-do`); route(); });
+    el.querySelectorAll('[data-todo]').forEach(cb => cb.onchange = async () => {
+      grab(); const it = c.todo[cb.dataset.todo]; it.done = cb.checked; await persist(`${c.name} to-do`); route();
+      if (cb.checked) tameFlow({ key: `club|${c.name}|${it.t}`, text: `${it.t} ${c.name}`, kind: 'club' });
+    });
     el.querySelectorAll('[data-rmtodo]').forEach(b => b.onclick = async () => { grab(); c.todo.splice(b.dataset.rmtodo, 1); await persist(`${c.name} to-do`); route(); });
     const add = el.querySelector('[data-addtodo]');
     add.onkeydown = async ev => { if (ev.key === 'Enter' && add.value.trim()) { grab(); c.todo.push({ t: add.value.trim(), done: false }); await persist(`${c.name} to-do`); route(); } };
@@ -749,6 +799,8 @@ async function viewSchool() {
     const k = b.dataset.hw, keep = hwDone.filter(x => x >= t);  // drop old keys
     const next = b.checked ? [...keep, k] : keep.filter(x => x !== k);
     await save('data/homework.json', JSON.stringify(next, null, 1) + '\n', `Homework ${b.checked ? 'done' : 'undone'}: ${k}`); route();
+    const [date, cls, title] = k.split('|');
+    if (b.checked) tameFlow({ key: 'hw|' + k, text: `${title} ${cls}`, kind: 'hw', due: date });
   });
 }
 
@@ -782,12 +834,13 @@ async function viewImpact() {
   $view.querySelector('#imAdd').onclick = () => {
     const e = { id: Date.now().toString(36), date: $view.querySelector('#imDate').value, what: $view.querySelector('#imWhat').value.trim() || 'Tutoring', hours: +$view.querySelector('#imHours').value || 0, note: $view.querySelector('#imNote').value.trim() };
     if (!e.date) return;
-    put([...log, e], `Impact: ${e.what} ${e.date}`);
+    put([...log, e], `Impact: ${e.what} ${e.date}`).then(() => dragonVisit(`${e.what} ${e.note}`, e.what));
   };
   $view.querySelectorAll('[data-week]').forEach(b => b.onclick = () => {
     const h = prompt(`Hours of ${b.dataset.week} this week?`, '1'); if (h === null) return;
     const note = prompt('What did you cover? (optional)', '') || '';
-    put([...log, { id: Date.now().toString(36), date: today(), what: b.dataset.week, hours: +h || 0, note }], `Impact: ${b.dataset.week} ${today()}`);
+    put([...log, { id: Date.now().toString(36), date: today(), what: b.dataset.week, hours: +h || 0, note }], `Impact: ${b.dataset.week} ${today()}`)
+      .then(() => dragonVisit(`${b.dataset.week} ${note}`, b.dataset.week));
   });
   $view.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => confirm('Remove this entry?') && put(log.filter(e => e.id !== b.dataset.rm), 'Impact: remove entry'));
 }
@@ -813,8 +866,9 @@ async function route() {
   if (page === 'lock') { lock(); location.hash = 'home'; return; }
   if (!DEMO && !token()) return viewUnlock();
   try {
-    await ({ home: viewHome, journal: viewJournal, entries: viewJournal, archive: viewJournal, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs, school: viewSchool, impact: viewImpact, fun: viewFun }[page] || viewHome)(arg);
+    await ({ home: viewHome, journal: viewJournal, entries: viewJournal, archive: viewJournal, entry: viewEntry, week: viewWeek, projects: viewProjects, project: viewProject, study: viewStudy, emails: viewEmails, smg: viewSMG, clubs: viewClubs, school: viewSchool, impact: viewImpact, fun: viewFun, dragons: viewDragons }[page] || viewHome)(arg);
     window.scrollTo(0, 0);
+    refreshMascot();
   } catch (e) {
     $view.innerHTML = `<div class="hero"><h1>Can't load</h1><p>${esc(e.message)}</p><p><button class="ghost" onclick="route()">Try again</button></p></div>`;
   }
@@ -845,11 +899,18 @@ addEventListener('hashchange', route);
       const w = innerWidth - 80;
       const nx = Math.max(8, Math.min(w, x + (Math.random() - .5) * 360));
       ram.classList.add('hop'); moveTo(nx); setTimeout(() => ram.classList.remove('hop'), 1600);
-      if (Math.random() < .15) setTimeout(() => say(['baa', '✿', 'hi Jada', '♈', '…zzz'][Math.floor(Math.random() * 5)]), 1700);
+      if (Math.random() < .15) setTimeout(() => say(idle[Math.floor(Math.random() * idle.length)]), 1700);
     }
     setTimeout(wander, 6000 + Math.random() * 8000);
   };
-  const cheers = ['Nice one!', 'BAA-rilliant!', 'Go Jada!', 'One down ✓', 'Ram-azing!', 'Unstoppable ♈', 'Proud of you!'];
+  let cheers = ['Nice one!', 'BAA-rilliant!', 'Go Jada!', 'One down ✓', 'Ram-azing!', 'Unstoppable ♈', 'Proud of you!'];
+  let idle = ['baa', '✿', 'hi Jada', '♈', '…zzz'], pets = ['Baa!', 'Hehe', '♈ Aries energy', 'Pet me more'];
+  // the dragon of the day takes over from Aries once there is one (dragons.js calls this)
+  window.mascot = { set(svg, name, lines) {
+    if (ram.dataset.svg === svg) return;
+    ram.dataset.svg = svg; ram.querySelector('svg').outerHTML = svg; ram.title = name; ram.classList.add('dragon-mascot');
+    cheers = [...lines, 'Go Jada!', 'One down ✓']; idle = ['✿', 'hi Jada', '…zzz', name]; pets = ['Hehe', 'Rawr (cutely)', `It's me, ${name}!`, ...lines];
+  } };
   const celebrate = () => {
     busy = true; say(cheers[Math.floor(Math.random() * cheers.length)], 2000);
     if (!still) {
@@ -865,7 +926,7 @@ addEventListener('hashchange', route);
   };
   document.addEventListener('change', ev => { if (ev.target.type === 'checkbox' && ev.target.checked) celebrate(); }, true);
   document.addEventListener('click', ev => { if (ev.target.closest('[data-day]:not([disabled])')) celebrate(); }, true);
-  ram.onclick = () => { if (busy) return; busy = true; say(['Baa!', 'Hehe', '♈ Aries energy', 'Pet me more'][Math.floor(Math.random() * 4)]); if (!still) { ram.classList.add('spin'); setTimeout(() => ram.classList.remove('spin'), 800); } setTimeout(() => busy = false, 900); };
+  ram.onclick = () => { if (busy) return; busy = true; say(pets[Math.floor(Math.random() * pets.length)]); if (!still) { ram.classList.add('spin'); setTimeout(() => ram.classList.remove('spin'), 800); } setTimeout(() => busy = false, 900); };
   moveTo(Math.min(innerWidth - 90, innerWidth * .7)); setTimeout(wander, 3000);
 })();
 route();

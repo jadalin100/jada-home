@@ -1,6 +1,6 @@
 [
- {
-  "t": "Demo anytime to-do",
-  "done": false
- }
+ { "t": "Demo anytime to-do", "done": false },
+ { "t": "Write demo essay draft", "done": false, "effort": 3, "imp": 3, "due": "2026-10-10" },
+ { "t": "Email demo mentor", "done": false, "effort": 1, "imp": 2, "due": "2026-10-14", "project": "sample-a" },
+ { "t": "Demo flashcards", "done": false, "effort": 1, "imp": 1 }
 ]

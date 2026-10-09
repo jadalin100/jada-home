@@ -1,0 +1,213 @@
+{
+ "dragons": [
+  {
+   "id": "mv1lyro46ec0",
+   "name": "Demo Puff",
+   "sex": "F",
+   "genes": {
+    "c": [
+     "Y",
+     "Y"
+    ],
+    "h": [
+     "h",
+     "H"
+    ],
+    "f": [
+     "f",
+     "F"
+    ],
+    "s": [
+     "s",
+     "S"
+    ],
+    "t": [
+     "t",
+     "t"
+    ],
+    "g": [
+     "G",
+     "G"
+    ],
+    "z": [
+     "*"
+    ]
+   },
+   "born": {
+    "builder": 2.4,
+    "seeker": 7.3,
+    "steady": 3.5,
+    "leader": 1.8,
+    "connector": 4.6,
+    "original": 2.7,
+    "recharge": 4.8
+   },
+   "traits": {
+    "builder": 2.4,
+    "seeker": 7.3,
+    "steady": 3.5,
+    "leader": 1.8,
+    "connector": 4.6,
+    "original": 2.7,
+    "recharge": 4.8
+   },
+   "rare": null,
+   "hatched": "2026-09-30",
+   "from": "Read the demo paper",
+   "gen": 1,
+   "points": 1,
+   "visits": [],
+   "power": "can smell an unanswered question from a mile away",
+   "snack": "peach rings",
+   "quirk": "hums when it is concentrating",
+   "story": "Born in the observatory peaks, it found you while you were finishing \"Read the demo paper\" and decided anyone who finishes things like that is worth following home."
+  },
+  {
+   "id": "mv1lyro4o7xs",
+   "name": "Demo Bean",
+   "sex": "M",
+   "genes": {
+    "c": [
+     "B",
+     "Y"
+    ],
+    "h": [
+     "h",
+     "H"
+    ],
+    "f": [
+     "F",
+     "F"
+    ],
+    "s": [
+     "s",
+     "s"
+    ],
+    "t": [
+     "t",
+     "t"
+    ],
+    "g": [
+     "g",
+     "g"
+    ],
+    "z": [
+     "*",
+     "-"
+    ]
+   },
+   "born": {
+    "builder": 6.1,
+    "seeker": 4.9,
+    "steady": 3.3,
+    "leader": 3.5,
+    "connector": 4.3,
+    "original": 3.8,
+    "recharge": 4.4
+   },
+   "traits": {
+    "builder": 6.1,
+    "seeker": 4.9,
+    "steady": 3.3,
+    "leader": 3.5,
+    "connector": 4.3,
+    "original": 3.8,
+    "recharge": 4.4
+   },
+   "rare": "Phoenix",
+   "hatched": "2025-10-09",
+   "from": "Fix the demo site",
+   "gen": 1,
+   "points": 1,
+   "visits": [],
+   "power": "snaps any broken thing back together with a flick of its tail",
+   "snack": "honey toast",
+   "quirk": "insists on sitting on warm laptops",
+   "story": "Born in the glowing workshop caves, it found you while you were finishing \"Fix the demo site\" and decided anyone who finishes things like that is worth following home."
+  },
+  {
+   "id": "mv1lyro4nkvs",
+   "name": "Demo Pip",
+   "sex": "F",
+   "genes": {
+    "c": [
+     "B",
+     "Y"
+    ],
+    "h": [
+     "H",
+     "h"
+    ],
+    "f": [
+     "f",
+     "F"
+    ],
+    "s": [
+     "s",
+     "S"
+    ],
+    "t": [
+     "T",
+     "T"
+    ],
+    "g": [
+     "G",
+     "G"
+    ],
+    "z": [
+     "-"
+    ]
+   },
+   "born": {
+    "builder": 4.7,
+    "seeker": 4.1,
+    "steady": 2.7,
+    "leader": 1.6,
+    "connector": 2.2,
+    "original": 2.4,
+    "recharge": 6.4
+   },
+   "traits": {
+    "builder": 4.7,
+    "seeker": 4.1,
+    "steady": 2.7,
+    "leader": 1.6,
+    "connector": 2.2,
+    "original": 5.6,
+    "recharge": 6.4
+   },
+   "rare": null,
+   "hatched": "2026-10-01",
+   "from": "Demo walk",
+   "gen": 1,
+   "points": 0,
+   "visits": [
+    {
+     "d": "2026-10-05",
+     "tr": "original",
+     "p": "Demo Project"
+    }
+   ],
+   "power": "can dim any room to the perfect cozy glow",
+   "snack": "warm milk tea",
+   "quirk": "hums when it is concentrating",
+   "story": "Born in the moonlit tide pools, it found you while you were finishing \"Demo walk\" and decided anyone who finishes things like that is worth following home."
+  }
+ ],
+ "tamed": {},
+ "rested": {},
+ "history": [
+  {
+   "d": "2026-10-08",
+   "k": "tame",
+   "ok": true,
+   "tr": "seeker"
+  },
+  {
+   "d": "2026-10-08",
+   "k": "tame",
+   "ok": false,
+   "tr": "steady"
+  }
+ ]
+}

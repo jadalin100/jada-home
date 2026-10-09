@@ -274,3 +274,113 @@ a.ghostlink { background: transparent; color: var(--ink); border: 1px solid var(
 @keyframes ramSpin { to { transform: rotate(360deg); } }
 @keyframes ramHeart { from { transform: translateY(0) scale(.6); opacity: 1; } to { transform: translateY(-90px) scale(1.2); opacity: 0; } }
 @media print { #ram { display: none; } }
+
+/* ---------- ranked to-dos ---------- */
+ul.checks li.lvl { border: 0; padding: .9rem 0 .1rem; font-family: Italiana, serif; font-size: 1.25rem; text-transform: uppercase; }
+ul.checks li.lvl:first-child { padding-top: 0; }
+ul.checks li.sub { border: 0; padding: .2rem 0 0; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+ul.checks label { flex: 1; }
+.rate { display: flex; gap: .25rem; flex-wrap: wrap; justify-content: flex-end; }
+button.chip { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); padding: .1rem .5rem; font-size: .66rem; letter-spacing: .04em; font-weight: 400; }
+.addrate { margin-top: .5rem; }
+.addrate select, .addrate input { flex: 1 1 8rem; min-width: 0; width: auto; padding: .45rem .6rem; font-size: .85rem; }
+
+/* ---------- Dragon Den ---------- */
+svg.dragon { display: block; width: 100%; height: 100%; overflow: visible; }
+svg.dragon .glit path { animation: twinkle 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+svg.dragon .glit path:nth-child(2n) { animation-delay: .7s; }
+svg.dragon .aura { animation: aura 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes twinkle { 50% { opacity: .2; transform: scale(.5); } }
+@keyframes aura { 50% { opacity: .15; transform: scale(1.06); } }
+
+.dotd { display: inline-flex; gap: .8rem; align-items: center; margin-top: 1.2rem; text-decoration: none; max-width: 38rem; }
+.dotd-pic { flex: 0 0 74px; height: 70px; }
+.dotd-say { display: block; margin-top: .2rem; font-style: italic; }
+.dotd + .quote, #dotd + .quote { margin-top: .6rem; }
+
+.meadow { position: relative; height: 340px; border-radius: 28px; overflow: hidden; background: linear-gradient(#cfe6ff, #eef6ff 60%); }
+.meadow.dawn { background: linear-gradient(#ffd6c9, #fbe9d7 60%); }
+.meadow.dusk { background: linear-gradient(#f9c6d6, #c7c1f3 60%); }
+.meadow.night { background: linear-gradient(#2d2a4a, #5b5487 60%); }
+.meadow i { position: absolute; font-style: normal; }
+.meadow .sun { width: 56px; height: 56px; right: 9%; top: 8%; border-radius: 50%; background: #fff3b8; box-shadow: 0 0 40px #fff3b8; }
+.meadow.night .sun { background: #f4f0ff; box-shadow: 0 0 30px #d8d0ff; width: 40px; height: 40px; }
+.meadow .hill { border-radius: 50%; }
+.meadow .h1 { left: -20%; right: 30%; top: 38%; height: 120%; background: #d6ecd0; }
+.meadow .h2 { left: 25%; right: -25%; top: 46%; height: 120%; background: #c3e3bd; }
+.meadow.night .h1 { background: #6f7f86; } .meadow.night .h2 { background: #5f7178; }
+.meadow .pond { left: 58%; top: 72%; width: 24%; height: 14%; border-radius: 50%; background: #bfe0f5; box-shadow: inset 0 3px 0 #d9eefb; }
+.meadow .flower { color: #f4a6b6; font-size: .9rem; opacity: .85; }
+.meadow .flower:nth-of-type(3n) { color: #fbe0a0; } .meadow .flower:nth-of-type(4n) { color: #fff; }
+.md { position: absolute; width: 96px; height: 90px; padding: 0; background: none; border: 0; border-radius: 0; cursor: pointer; transform: translate(-50%, -50%);
+  transition: left 2.6s ease-in-out, top 2.6s ease-in-out; }
+.md svg { filter: drop-shadow(0 4px 3px rgba(60, 80, 60, .18)); }
+.md.flip svg { transform: scaleX(-1); }
+.md.walk svg { animation: bob .45s ease-in-out 5; }
+.md.flip.walk svg { animation-name: bobFlip; }
+.md.hop svg { animation: hopUp .45s ease-in-out 2; }
+.md.flip.hop svg { animation-name: hopUpFlip; }
+.md .zz, .md .bub { position: absolute; top: -6px; right: 4px; font-size: .75rem; color: #6d6878; opacity: 0; transition: opacity .4s; pointer-events: none; }
+.md.nap .zz, .md.play .bub { opacity: 1; animation: floatUp 2s ease-in-out infinite; }
+.md .bub { color: #e07a9a; }
+@keyframes bob { 50% { transform: translateY(-4px) rotate(-3deg); } }
+@keyframes bobFlip { 0%, 100% { transform: scaleX(-1); } 50% { transform: scaleX(-1) translateY(-4px) rotate(-3deg); } }
+@keyframes hopUp { 50% { transform: translateY(-16px); } }
+@keyframes hopUpFlip { 0%, 100% { transform: scaleX(-1); } 50% { transform: scaleX(-1) translateY(-16px); } }
+@keyframes floatUp { 50% { transform: translateY(-6px); } }
+@media (max-width: 640px) { .meadow { height: 260px; } .md { width: 66px; height: 62px; } }
+
+.dgrid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.dcard .dc-pic { width: 130px; height: 122px; margin: 0 auto .4rem; }
+.dcard h3 { display: flex; align-items: center; gap: .5rem; }
+.dcard .sex { font-family: Figtree, sans-serif; font-size: 1rem; color: var(--ink-soft); }
+.dcard .tag { color: var(--ink); }
+.rare-tag, .rare { background: linear-gradient(90deg, #ffe0ef, #fff4c2, #dff0ff); color: #6b4a6e; }
+.rare { display: inline-block; padding: .15rem .6rem; border-radius: 99px; font-size: .85rem; }
+.hepta { width: 100%; max-width: 320px; display: block; margin: .3rem auto; }
+.hepta text { font-size: 9.5px; fill: var(--ink-soft); font-family: Figtree, sans-serif; }
+ul.facts { padding-left: 1.1rem; margin: .4rem 0; }
+ul.facts li { margin: .2rem 0; }
+.genes .geno { font: 600 1rem ui-monospace, Menlo, monospace; letter-spacing: .05em; margin: .5rem 0 .2rem; }
+.genes .seq { font: .8rem ui-monospace, Menlo, monospace; color: var(--ink-soft); word-break: break-all; margin: 0 0 .5rem; }
+.genes table { width: 100%; border-collapse: collapse; }
+.genes th, .genes td { text-align: left; padding: .2rem .3rem; border-bottom: 1px solid var(--line); }
+.genes td:nth-child(2), .genes td:nth-child(3) { font-family: ui-monospace, Menlo, monospace; }
+.swatch { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .4rem; vertical-align: -1px; }
+
+.dmodal { border: 0; border-radius: 26px; padding: 1.6rem; width: min(92vw, 400px); background: var(--paper); color: var(--ink); text-align: center;
+  box-shadow: 0 30px 60px -20px rgba(44, 42, 53, .45); }
+.dmodal::backdrop { background: rgba(44, 42, 53, .35); backdrop-filter: blur(4px); }
+.dmodal h3 { margin: .4rem 0; }
+.dmodal .row { justify-content: center; }
+.dmodal input[type=text] { text-align: center; }
+.dm-pic { width: 150px; height: 140px; margin: 0 auto; animation: hopUp 1s ease-in-out 2; }
+.dm-pair { display: flex; align-items: center; justify-content: center; gap: .4rem; }
+.dm-pair svg { width: 100px; height: 94px; } .dm-pair span { font-size: 1.6rem; color: #e07a9a; }
+.dm-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: .5rem; max-height: 50vh; overflow: auto; }
+.dm-pick button { text-transform: none; letter-spacing: 0; padding: .4rem; border-radius: 16px; }
+.dm-pick svg { width: 70px; height: 66px; margin: 0 auto; }
+.dm-pick span { font-size: .75rem; }
+.odds { margin: .6rem 0 0; } .odds strong { font-size: 1.4rem; }
+.die { position: relative; width: 96px; height: 96px; margin: .8rem auto .4rem; }
+.die svg { width: 100%; height: 100%; }
+.die .num { position: absolute; left: 0; right: 0; top: 33%; font: 600 1.35rem Figtree, sans-serif; color: #8a4a68; }
+.die.rolling { animation: tumble .32s linear infinite; }
+.die.win svg polygon:first-child { fill: #d9f2dc; stroke: #8fcf98; }
+.die.miss svg polygon:first-child { fill: #ece8f2; stroke: #b9b3c6; }
+@keyframes tumble { 25% { transform: translate(-4px, -10px) rotate(-14deg); } 50% { transform: translateY(0) rotate(0); } 75% { transform: translate(4px, -8px) rotate(14deg); } }
+
+.visit { position: fixed; right: 16px; bottom: 76px; z-index: 60; max-width: min(380px, calc(100vw - 32px)); display: flex; gap: .7rem; align-items: flex-start;
+  background: var(--paper); box-shadow: 0 18px 40px -16px rgba(44, 42, 53, .4); animation: slideIn .4s ease-out; }
+.visit .v-pic { flex: 0 0 64px; height: 60px; }
+.visit p { margin: .25rem 0; }
+@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } }
+#ram.dragon-mascot { width: 70px; height: 66px; }
+#ram.dragon-mascot .bubble { bottom: 70px; }
+@media (prefers-reduced-motion: reduce) { .dm-pic, .visit, svg.dragon .glit path, svg.dragon .aura { animation: none; } }
+@media (prefers-color-scheme: dark) { .meadow .flower:nth-of-type(4n) { color: #fbe0a0; } .dmodal input[type=text] { background: rgba(255,255,255,.08); } }
+.tag { white-space: nowrap; }
+@media (max-width: 640px) {
+  #anytime li:not(.lvl):not(.sub) { flex-wrap: wrap; }
+  #anytime .rate { order: 3; width: 100%; justify-content: flex-start; padding-left: 1.6rem; }
+}
