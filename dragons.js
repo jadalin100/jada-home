@@ -196,20 +196,21 @@ function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
   DRAG[d.id] = d;
   const P = pheno(d.genes, d.sex), c = P.color[1];
   const ol = mix(shade(c, -.5), '#5a3a2e', .45);   // outline: a deep version of the body color, warmed toward brown
-  const belly = mix(c, '#fff6e6', .72), ridge = shade(c, -.12), horn = '#fff4e0', eye = '#4a2e22', membrane = mix(c, '#ffffff', .3);
+  const belly = mix(c, '#fff6e6', .72), ridge = shade(c, -.12), horn = mix(shade(c, -.18), '#fff4e0', .3), eye = '#4a2e22', membrane = mix(c, '#ffffff', .3);
   const S = (w = 2) => `stroke="${ol}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
   const limb = (path, w = 8.5) => `<path d="${path}" fill="none" stroke="${ol}" stroke-width="${w}" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${c}" stroke-width="${w - 3.6}" stroke-linecap="round"/>`;
   const mirror = svg => `${svg}<g transform="translate(120 0) scale(-1 1)">${svg}</g>`;   // draw the right side, copy it to the left
   const low = pose === 'sit' || pose === 'sleep', lift = { sit: 5, sleep: 9, fly: -8, egg: 2 }[pose] || 0;
 
   const WING = {
-    bat: `<path d="M73 71C77 58 88 49 104 48C101 53 101 57 104 61C98 60 94 63 95 68C90 66 87 69 87 74C83 72 79 74 76 78Z" fill="${membrane}" ${S()}/>
-      <path d="M75 72L103 49M76 74L94 66M78 76L87 72" fill="none" ${S(1.2)} opacity=".55"/>`,
-    feathered: `<path d="M73 72C78 60 92 54 106 57C104 60 105 63 103 65C104 68 101 70 99 70C99 73 96 75 93 74C92 77 88 79 85 78C82 79 78 79 76 78Z" fill="#fffaf5" ${S()}/>
-      <path d="M80 70C87 64 95 62 102 62M80 74C85 71 91 69 97 69M80 77C84 75 88 74 91 74" fill="none" ${S(1.1)} opacity=".45"/>`,
-    fin: `<path d="M73 72C76 64 80 58 86 53C86 57 87 59 89 61C91 56 95 52 100 50C99 55 99 59 101 62C103 60 106 59 109 59C106 64 103 70 97 73C89 76 81 78 76 78Z" fill="${membrane}" ${S()}/>
-      <path d="M76 75C80 68 83 62 86 55M78 76C85 70 92 62 99 52M80 77C89 73 98 66 107 60" fill="none" ${S(1.1)} opacity=".45"/>`,
-    tiny: `<path d="M73 72C76 65 83 62 89 64C88 66 89 68 88 70C86 70 85 72 85 74C82 73 79 75 76 78Z" fill="${membrane}" ${S()}/>`,
+    bat: `<path d="M74 70C80 56 92 46 104 46C103 52 104 56 106 60C100 59 96 61 95 66C91 63 86 65 85 70C82 68 78 70 76 76Z" fill="${membrane}" ${S()}/>
+      <path d="M76 71Q90 56 104 47M77 73Q88 65 95 65M78 75Q83 70 85 70" fill="none" ${S(1.4)} opacity=".6"/>`,
+    feathered: `<path d="M74 72C80 58 94 52 106 54C108 58 105 61 102 62C105 64 103 68 99 68C101 71 98 74 94 73C95 76 91 79 87 77C84 79 79 78 76 77Z" fill="#fffaf5" ${S()}/>
+      <path d="M80 69C88 62 96 60 102 61M80 73C87 69 93 68 98 68M80 76C85 74 89 74 93 74" fill="none" ${S(1.1)} opacity=".4"/>`,
+    fin: `<path d="M74 72C78 62 84 55 88 50C89 55 91 58 93 60C96 55 100 51 105 49C104 54 104 58 106 61C108 60 110 60 112 61C108 67 102 72 94 75C87 77 80 78 76 77Z" fill="${membrane}" ${S()}/>
+      <path d="M77 74Q83 62 88 52M79 75Q92 63 104 50M81 76Q97 70 111 61" fill="none" ${S(1.1)} opacity=".45"/>`,
+    tiny: `<path d="M74 72C77 64 84 60 91 61C90 64 91 66 93 68C89 68 87 70 87 73C84 72 80 74 76 77Z" fill="${membrane}" ${S()}/>
+      <path d="M77 73Q84 66 91 62" fill="none" ${S(1.1)} opacity=".45"/>`,
   }[P.f];
   const wt = `translate(74 72) rotate(${pose === 'fly' ? -22 : -10}) scale(${pose === 'fly' ? 1.4 : 1.18}) translate(-74 -72)`;
   const wings = mirror(`<g transform="${wt}">${WING}</g>`);
@@ -235,32 +236,32 @@ function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
     <path d="M53 79Q60 82 67 79M51 87Q60 90 69 87M52 95Q60 98 68 95" fill="none" stroke="${ol}" stroke-width="1.1" opacity=".3"/>
     ${P.s === 'freckles' ? mirror(`<g fill="${ol}" opacity=".3"><circle cx="44" cy="82" r="1.2"/><circle cx="45" cy="87" r=".9"/></g>`) : ''}`;
 
+  const hl = `fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".55"`;
   const HORN = {
-    'swept-back': `<path d="M46 31C42 26 39 20 37 11C41 15 46 20 51 27Z" fill="${horn}" ${S(1.6)}/><path d="M41 19l3-1M43 23l3-1" ${S(1)} opacity=".5"/>`,
-    'ram curl': `<path d="M46 31C38 25 38 16 44 15C49 14 50 20 46 21" fill="none" stroke="${ol}" stroke-width="6.5" stroke-linecap="round"/>
-      <path d="M46 31C38 25 38 16 44 15C49 14 50 20 46 21" fill="none" stroke="${horn}" stroke-width="3.4" stroke-linecap="round"/>`,
-    spiky: `<path d="M45 31 39 15 50 27ZM50 27 50 18 54 26Z" fill="${horn}" ${S(1.6)}/>`,
-    nubs: `<path d="M44 31C42 25 44 22 47 23C50 24 51 27 50 30Z" fill="${horn}" ${S(1.6)}/>`,
-  }[P.h];
-  const eyesOpen = (dx = 0, ry = 5) => [49, 71].map(x => `<ellipse cx="${x + dx}" cy="46" rx="4.2" ry="${ry}" fill="${eye}"/><circle cx="${x + dx + 1.5}" cy="44" r="1.7" fill="#fff"/><circle cx="${x + dx - 1.2}" cy="48.2" r=".8" fill="#fff"/>`).join('');
-  const arc = (x, up) => `<path d="M${x - 4.5} 47q4.5 ${up ? -5.5 : 3.5} 9 0" fill="none" stroke="${eye}" stroke-width="2.1" stroke-linecap="round"/>`;
-  const eyes = { cheer: arc(49, 1) + arc(71, 1), heart: arc(49, 1) + arc(71, 1), sleep: arc(49, 0) + arc(71, 0), shy: eyesOpen(-2),
-    wink: eyesOpen().split('<ellipse').slice(0, 2).join('<ellipse') + arc(71, 1), egg: eyesOpen(0, 5.6) }[pose] || eyesOpen();
+    'swept-back': `<path d="M43 32C40 24 38 17 34 9C41 13 47 21 51 28Z" fill="${horn}" ${S(1.6)}/><path d="M41 25C39 20 38 16 36 13" ${hl}/>`,
+    'ram curl': `<path d="M47 31C38 27 36 17 42 13C48 10 52 16 48 19" fill="none" stroke="${ol}" stroke-width="7.5" stroke-linecap="round"/>
+      <path d="M47 31C38 27 36 17 42 13C48 10 52 16 48 19" fill="none" stroke="${horn}" stroke-width="4.3" stroke-linecap="round"/><path d="M41 26C38 23 38 18 40 16" ${hl}/>`,
+    spiky: `<path d="M44 32C42 26 40 21 37 15C42 18 46 23 49 28ZM49 28C49 24 49 21 51 17C53 21 54 24 54 27Z" fill="${horn}" ${S(1.6)}/><path d="M42 26C41 23 40 20 39 18" ${hl}/>`,
+    nubs: `<path d="M44 31C42 26 43 22 46 21C49 21 51 25 51 29Z" fill="${horn}" ${S(1.6)}/>`,
+    }[P.h];
+  const eyesOpen = (dx = 0, ry = 5) => [48, 72].map(x => `<ellipse cx="${x + dx}" cy="43" rx="4.2" ry="${ry}" fill="${eye}"/><circle cx="${x + dx + 1.5}" cy="41" r="1.7" fill="#fff"/><circle cx="${x + dx - 1.2}" cy="45.2" r=".8" fill="#fff"/>`).join('');
+  const arc = (x, up) => `<path d="M${x - 4.5} 44q4.5 ${up ? -5.5 : 3.5} 9 0" fill="none" stroke="${eye}" stroke-width="2.1" stroke-linecap="round"/>`;
+  const eyes = { cheer: arc(48, 1) + arc(72, 1), heart: arc(48, 1) + arc(72, 1), sleep: arc(48, 0) + arc(72, 0), shy: eyesOpen(-2),
+    wink: eyesOpen().split('<ellipse').slice(0, 2).join('<ellipse') + arc(72, 1), egg: eyesOpen(0, 5.6) }[pose] || eyesOpen();
   const mouth = { wave: 'open', cheer: 'open', egg: 'open', sleep: 'o', wink: 'tongue' }[pose] || 'smile';
-  const mouthSvg = mouth === 'open' ? `<path d="M56 59.5q4 6.5 8 0Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
-    : mouth === 'o' ? `<circle cx="60" cy="61" r="1.4" fill="none" stroke="${eye}" stroke-width="1.2"/>`
-    : `<path d="M56 60q4 3.5 8 0" fill="none" stroke="${eye}" stroke-width="1.6" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M60.5 61.6q1.6 3.6 3.2 0" fill="#f29aab"/>' : ''}`;
+  const mouthSvg = mouth === 'open' ? `<path d="M56.5 64.5q3.5 5.5 7 0Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
+    : mouth === 'o' ? `<circle cx="60" cy="65.5" r="1.3" fill="none" stroke="${eye}" stroke-width="1.2"/>`
+    : `<path d="M57 64q3 2.6 6 0" fill="none" stroke="${eye}" stroke-width="1.5" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M60.6 65.6q1.5 3.4 3 0" fill="#f29aab"/>' : ''}`;
   const tilt = { sleep: 'rotate(-10 60 64)', shy: 'rotate(6 60 64)', heart: 'rotate(-4 60 64)' }[pose] || '';
   const head = `<g transform="${tilt}">
-    ${mirror(`<path d="M38 44C33 40 28 39 25 41C29 43 31 45 32 47C28 47 25 49 24 52C28 52 31 53 33 54C30 56 29 59 29 61C33 60 36 58 39 56Z" fill="${c}" ${S(1.8)}/>${HORN}`)}
+    ${mirror(`<path d="M37 45C33 42 29 42 27 43C30 45 31 47 32 48C29 49 27 51 27 53C30 53 33 53 35 54C33 56 33 58 33 59C36 58 38 57 40 55Z" fill="${c}" ${S(1.7)}/>${HORN}`)}
     <path d="M51 29C51 23 54 19 57 18C56 22 57 25 59 27C59 21 62 16 65 15C64 20 65 24 66 27C67 23 70 20 72 20C71 24 71 27 70 30Z" fill="${ridge}" ${S(1.6)}/>
-    <path d="M60 25C75 25 85 34 86 45C87 54 84 61 78 65C72 69 66 70 60 70C54 70 48 69 42 65C36 61 33 54 34 45C35 34 45 25 60 25Z" fill="${c}" ${S()}/>
-    <path d="M50 58C50 53 55 52 60 52C65 52 70 53 70 58C70 63 65 65 60 65C55 65 50 63 50 58Z" fill="${belly}" opacity=".55"/>
-    ${eyes}<circle cx="57.5" cy="55.5" r=".9" fill="${ol}"/><circle cx="62.5" cy="55.5" r=".9" fill="${ol}"/>${mouthSvg}
-    ${mirror(`<ellipse cx="42" cy="55" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/>`)}
-    ${pose === 'shy' ? mirror('<path d="M39 52l1.5 2M42 51.5l1.5 2" stroke="#e07a9a" stroke-width="1"/>') : ''}
-    ${P.s === 'freckles' ? mirror(`<g fill="${ol}" opacity=".35"><circle cx="39" cy="45" r="1"/><circle cx="41" cy="49" r=".9"/></g>`) : ''}
-    ${P.star ? `<path d="M60 31l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : ''}
+    <path d="M60 23C76 23 86 32 86 44C86 52 81 57 75 61C70 65 66 71 60 72C54 71 50 65 45 61C39 57 34 52 34 44C34 32 44 23 60 23Z" fill="${c}" ${S()}/>
+    <path d="M52 55C55 52 65 52 68 55C68 61 64 68 60 69C56 68 52 61 52 55Z" fill="${belly}" opacity=".6"/>
+    ${eyes}<ellipse cx="57.4" cy="58.6" rx=".8" ry=".6" fill="${ol}"/><ellipse cx="62.6" cy="58.6" rx=".8" ry=".6" fill="${ol}"/>${mouthSvg}
+    ${mirror(`<ellipse cx="41" cy="51" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/>`)}
+    ${pose === 'shy' ? mirror('<path d="M38 48l1.5 2M41 47.5l1.5 2" stroke="#e07a9a" stroke-width="1"/>') : ''}
+    ${P.star ? `<path d="M60 29l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : ''}
     ${hat ? `<path d="M51 26 59 3 68 25Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width="1.2" stroke-linejoin="round"/><circle cx="59" cy="3" r="3" fill="#fbe0a0"/>` : ''}</g>`;
   const egg = pose === 'egg' ? `<path d="M32 84 38 78 45 85 52 77 60 85 68 77 75 85 82 78 88 84Q91 113 60 114 29 113 32 84Z" fill="#fffaf2" ${S()}/>
     <circle cx="46" cy="98" r="2.5" fill="${c}" opacity=".7"/><circle cx="72" cy="104" r="3" fill="${c}" opacity=".7"/><circle cx="66" cy="94" r="1.8" fill="${c}" opacity=".7"/>
