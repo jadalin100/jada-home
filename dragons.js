@@ -186,98 +186,110 @@ const mix = (a, b, t) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i,
 const POSES = ['stand', 'wave', 'cheer', 'sit', 'sleep', 'fly', 'egg', 'heart', 'wink', 'shy'];
 const POSE_NAMES = { stand: 'Standing', wave: 'Waving', cheer: 'Cheering', sit: 'Sitting', sleep: 'Napping', fly: 'Flying', egg: 'Peeking from its egg', heart: 'Holding a heart', wink: 'Winking', shy: 'Feeling shy' };
 const DRAG = {};   // id -> dragon, so hovering can redraw it in a new pose
+// Three-quarter view facing left, snout sticking out sideways. Shoulders: near (51,74), far (68,75).
 const ARMS = {
-  stand: ['M47 74Q41 82 44 90', 'M73 74Q79 82 76 90'], wave: ['M47 74Q41 82 44 90', 'M73 74Q91 70 91 52'], cheer: ['M47 74Q34 66 36 52', 'M73 74Q86 66 84 52'],
-  sit: ['M47 74Q43 84 50 90', 'M73 74Q77 84 70 90'], sleep: ['M47 76Q46 86 54 88', 'M73 76Q74 86 66 88'], fly: ['M47 74Q36 76 34 84', 'M73 74Q84 76 86 84'],
-  egg: ['M46 77Q38 81 41 86', 'M74 77Q82 81 79 86'], heart: ['M47 74Q46 86 55 87', 'M73 74Q74 86 65 87'], wink: ['M47 74Q41 82 44 90', 'M73 74Q83 80 79 89'],
-  shy: ['M47 74Q36 68 42 60', 'M73 74Q84 68 78 60'],
+  stand: ['M51 74Q45 82 48 89', 'M68 75Q72 83 67 89'], wave: ['M51 74Q45 82 48 89', 'M68 75Q81 68 80 53'], cheer: ['M51 74Q39 66 42 53', 'M68 75Q81 68 80 53'],
+  sit: ['M51 74Q47 84 53 90', 'M68 75Q71 84 65 90'], sleep: ['M51 76Q50 86 57 88', 'M68 76Q70 86 63 88'], fly: ['M51 74Q40 76 38 84', 'M68 75Q78 78 80 86'],
+  egg: ['M50 77Q42 81 45 86', 'M70 77Q78 81 75 86'], heart: ['M51 74Q49 86 56 87', 'M68 75Q70 86 64 87'], wink: ['M51 74Q45 82 48 89', 'M68 75Q77 82 73 89'],
+  shy: ['M51 74Q39 66 44 56', 'M68 75Q77 66 67 56'],
 };
 function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
   DRAG[d.id] = d;
   const P = pheno(d.genes, d.sex), c = P.color[1];
   const ol = mix(shade(c, -.5), '#5a3a2e', .45);   // outline: a deep version of the body color, warmed toward brown
-  const belly = mix(c, '#fff6e6', .72), ridge = shade(c, -.12), horn = mix(shade(c, -.18), '#fff4e0', .3), eye = '#4a2e22', membrane = mix(c, '#ffffff', .3);
+  const belly = mix(c, '#fff6e6', .72), ridge = shade(c, -.12), eye = '#4a2e22', membrane = mix(c, '#ffffff', .4);
+  const horn = mix(shade(c, -.16), '#fff4e0', .35), hornLine = shade(c, -.35);
   const S = (w = 2) => `stroke="${ol}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
   const limb = (path, w = 8.5) => `<path d="${path}" fill="none" stroke="${ol}" stroke-width="${w}" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${c}" stroke-width="${w - 3.6}" stroke-linecap="round"/>`;
-  const mirror = svg => `${svg}<g transform="translate(120 0) scale(-1 1)">${svg}</g>`;   // draw the right side, copy it to the left
   const low = pose === 'sit' || pose === 'sleep', lift = { sit: 5, sleep: 9, fly: -8, egg: 2 }[pose] || 0;
 
+  // wings, drawn from the shoulder (0,0) reaching up and out
   const WING = {
-    bat: `<path d="M74 70C80 56 92 46 104 46C103 52 104 56 106 60C100 59 96 61 95 66C91 63 86 65 85 70C82 68 78 70 76 76Z" fill="${membrane}" ${S()}/>
-      <path d="M76 71Q90 56 104 47M77 73Q88 65 95 65M78 75Q83 70 85 70" fill="none" ${S(1.4)} opacity=".6"/>`,
-    feathered: `<path d="M74 72C80 58 94 52 106 54C108 58 105 61 102 62C105 64 103 68 99 68C101 71 98 74 94 73C95 76 91 79 87 77C84 79 79 78 76 77Z" fill="#fffaf5" ${S()}/>
-      <path d="M80 69C88 62 96 60 102 61M80 73C87 69 93 68 98 68M80 76C85 74 89 74 93 74" fill="none" ${S(1.1)} opacity=".4"/>`,
-    fin: `<path d="M74 72C78 62 84 55 88 50C89 55 91 58 93 60C96 55 100 51 105 49C104 54 104 58 106 61C108 60 110 60 112 61C108 67 102 72 94 75C87 77 80 78 76 77Z" fill="${membrane}" ${S()}/>
-      <path d="M77 74Q83 62 88 52M79 75Q92 63 104 50M81 76Q97 70 111 61" fill="none" ${S(1.1)} opacity=".45"/>`,
-    tiny: `<path d="M74 72C77 64 84 60 91 61C90 64 91 66 93 68C89 68 87 70 87 73C84 72 80 74 76 77Z" fill="${membrane}" ${S()}/>
-      <path d="M77 73Q84 66 91 62" fill="none" ${S(1.1)} opacity=".45"/>`,
+    bat: `<path d="M0 0C3-13 13-25 29-30C28-24 29-20 34-16C28-16 24-13 24-8C20-10 15-8 14-3C10-4 5-2 2 4Z" fill="${membrane}" ${S()}/>
+      <path d="M17-22Q27-19 34-16M17-22Q21-14 24-8M17-22Q15-11 14-3" fill="none" stroke="${ol}" stroke-width="1.3" stroke-linecap="round" opacity=".55"/>
+      <path d="M27-29C29-33 32-33 33-31" fill="none" ${S(1.6)}/>`,
+    feathered: `<path d="M0 0C2-14 14-26 30-28C33-27 34-24 32-22C35-21 35-17 32-16C34-14 33-10 29-10C30-7 27-4 24-5C24-1 19 1 16 0C12 3 6 3 2 4Z" fill="#fffaf5" ${S()}/>
+      <path d="M8-8C14-15 21-19 29-21M8-3C14-8 20-11 27-12M7 1C12-2 16-3 21-3" fill="none" stroke="${ol}" stroke-width="1.1" stroke-linecap="round" opacity=".4"/>`,
+    fin: `<path d="M0 0C2-8 6-16 10-24C12-19 14-17 17-16C19-22 23-27 28-30C28-24 29-20 31-18C33-21 36-22 40-22C37-14 30-6 20-2C13 1 6 3 2 4Z" fill="${membrane}" ${S()}/>
+      <path d="M3 1Q7-11 10-22M4 2Q16-13 27-28M5 3Q22-6 38-21" fill="none" stroke="${ol}" stroke-width="1.1" stroke-linecap="round" opacity=".45"/>`,
+    tiny: `<path d="M0 0C2-8 8-13 16-14C15-11 16-9 18-7C14-7 12-5 12-2C9-3 5-1 2 3Z" fill="${membrane}" ${S()}/>
+      <path d="M9-10Q13-8 18-7M9-10Q11-6 12-2" fill="none" stroke="${ol}" stroke-width="1.1" stroke-linecap="round" opacity=".5"/>`,
   }[P.f];
-  const wt = `translate(74 72) rotate(${pose === 'fly' ? -22 : -10}) scale(${pose === 'fly' ? 1.4 : 1.18}) translate(-74 -72)`;
-  const wings = mirror(`<g transform="${wt}">${WING}</g>`);
+  const fly = pose === 'fly';
+  const wings = `<g transform="translate(73 70) rotate(${fly ? -16 : 0}) scale(${fly ? 1.35 : 1.12})">${WING}</g>`;
 
   const tipShape = P.t === 'heart' ? `<path d="M0 4C-6 0-6-6-2.2-6 0-6 0-3.6 0-3.6S0-6 2.2-6C6-6 6 0 0 4Z" fill="${ridge}" ${S(1.6)}/>`
     : `<path d="M0 2Q8-6 0-14Q-8-6 0 2Z" fill="${ridge}" ${S(1.6)}/>`;
   const tail = pose === 'egg' ? '' : low
-    ? `<path d="M64 102C54 110 42 111 35 104C32 101 31 97 33 95C35 101 41 104 48 103C54 102 59 100 62 97Z" fill="${c}" ${S()}/>
-       <path d="M57 100 55 94 52 101ZM47 103 44 97 42 102ZM38 100 33 97 36 102Z" fill="${ridge}" ${S(1.4)}/><g transform="translate(32 92) rotate(-30)">${tipShape}</g>`
-    : `<path d="M72 90C82 97 93 99 100 92C104 88 105 83 103 79C101 85 96 90 89 91C83 92 78 90 74 86Z" fill="${c}" ${S()}/>
-       <path d="M81 90 83 84 87 91ZM90 91 93 85 95 89ZM97 87 101 81 101 86Z" fill="${ridge}" ${S(1.4)}/><g transform="translate(104 76) rotate(25)">${tipShape}</g>`;
+    ? `<path d="M70 102C80 110 92 110 98 102C100 98 99 95 97 94C95 100 89 104 82 103C77 102 73 100 72 97Z" fill="${c}" ${S()}/>
+       <path d="M77 101 78 95 82 102ZM85 103 88 97 90 103ZM93 100 97 95 96 101Z" fill="${ridge}" ${S(1.4)}/><g transform="translate(98 91) rotate(20)">${tipShape}</g>`
+    : `<path d="M76 90C88 98 100 98 105 88C108 82 107 77 104 75C103 82 98 88 90 89C84 90 80 88 77 85Z" fill="${c}" ${S()}/>
+       <path d="M83 89 85 83 88 89ZM91 89 95 83 96 87ZM98 85 103 80 102 85Z" fill="${ridge}" ${S(1.4)}/><g transform="translate(105 72) rotate(20)">${tipShape}</g>`;
 
-  const foot = `<path d="M38 107C37 102 42 101 47 101C52 101 56 102 56 107C56 109 52 109 47 109C42 109 38 109 38 107Z" fill="${c}" ${S()}/><path d="M44 105v3M49 105v3" ${S(1.2)}/>`;
-  const legsBack = pose === 'egg' || low ? '' : pose === 'fly'
-    ? mirror(`<ellipse cx="49" cy="97" rx="7" ry="8" fill="${c}" ${S()}/><path d="M45 106C44 103 47 102 50 102C53 102 55 103 55 106C55 108 52 108 50 108C47 108 45 108 45 106Z" fill="${c}" ${S()}/>`)
-    : '';
-  const thighs = pose === 'egg' || low ? '' : pose === 'fly' ? '' : mirror(`<ellipse cx="47" cy="95" rx="9" ry="10" fill="${c}" ${S()}/>${foot}`);
-  const feetFront = low ? mirror(`<ellipse cx="48" cy="104" rx="8.5" ry="6.5" fill="${c}" ${S()}/><ellipse cx="48" cy="105.5" rx="4" ry="3" fill="${belly}"/>
-    <circle cx="44.5" cy="101.5" r="1.3" fill="${belly}"/><circle cx="48" cy="100.5" r="1.3" fill="${belly}"/><circle cx="51.5" cy="101.5" r="1.3" fill="${belly}"/>`) : '';
-  const body = `<path d="M50 64C43 70 40 80 41 90C42 100 48 106 60 106C72 106 78 100 79 90C80 80 77 70 70 64Z" fill="${c}" ${S()}/>
-    <path d="M78 75 83 77 79 81ZM79 84 84 86 79 89Z" fill="${ridge}" ${S(1.3)}/>`;
-  const bellySvg = `<path d="M60 70C53 70 50 79 50 88C50 97 54 102 60 102C66 102 70 97 70 88C70 79 67 70 60 70Z" fill="${belly}" stroke="${ol}" stroke-width="1.1" stroke-opacity=".45"/>
-    <path d="M53 79Q60 82 67 79M51 87Q60 90 69 87M52 95Q60 98 68 95" fill="none" stroke="${ol}" stroke-width="1.1" opacity=".3"/>
-    ${P.s === 'freckles' ? mirror(`<g fill="${ol}" opacity=".3"><circle cx="44" cy="82" r="1.2"/><circle cx="45" cy="87" r=".9"/></g>`) : ''}`;
+  const foot = (x, y, k = 1) => `<g transform="translate(${x} ${y}) scale(${k})"><path d="M-9 0C-10-4-6-5-1-5C4-5 7-4 7 0C7 2 4 2-1 2C-6 2-9 2-9 0Z" fill="${c}" ${S()}/><path d="M-5-1.5v3M-1-1.5v3" ${S(1.2)}/></g>`;
+  const farLeg = pose === 'egg' || low ? '' : fly ? `<ellipse cx="71" cy="97" rx="6" ry="7" fill="${c}" ${S()}/>${foot(71, 106, .7)}`
+    : `<ellipse cx="72" cy="96" rx="8" ry="9" fill="${c}" ${S()}/>${foot(72, 106, .9)}`;
+  const nearLeg = pose === 'egg' || low ? '' : fly ? `<ellipse cx="51" cy="97" rx="7" ry="8" fill="${c}" ${S()}/>${foot(50, 107, .75)}`
+    : `<ellipse cx="51" cy="95" rx="9" ry="10" fill="${c}" ${S()}/>${foot(48, 106)}`;
+  const bean = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})"><ellipse rx="8.5" ry="6.5" fill="${c}" ${S()}/><ellipse cy="1.5" rx="4" ry="3" fill="${belly}"/>
+    <circle cx="-3.5" cy="-2.5" r="1.3" fill="${belly}"/><circle cy="-3.5" r="1.3" fill="${belly}"/><circle cx="3.5" cy="-2.5" r="1.3" fill="${belly}"/></g>`;
+  const feetFront = low ? bean(68, 105, .85) + bean(48, 104, 1) : '';
+  const body = `<path d="M52 66C44 72 42 84 44 94C46 103 53 107 62 107C72 107 79 102 80 93C81 83 77 72 70 66Z" fill="${c}" ${S()}/>
+    <path d="M78 72 83 74 79 78ZM80 80 85 82 80 86ZM80 88 85 90 80 93Z" fill="${ridge}" ${S(1.3)}/>`;
+  const bellySvg = `<path d="M57 70C50 74 48 84 49 93C50 100 54 104 60 104C66 104 69 99 69 91C69 81 66 73 57 70Z" fill="${belly}" stroke="${ol}" stroke-width="1.1" stroke-opacity=".45"/>
+    <path d="M51 80Q58 83 66 80M50 88Q59 91 68 88M51 96Q59 99 67 96" fill="none" stroke="${ol}" stroke-width="1.1" opacity=".3"/>
+    ${P.s === 'freckles' ? `<g fill="${ol}" opacity=".3"><circle cx="74" cy="82" r="1.3"/><circle cx="76" cy="88" r="1"/><circle cx="73" cy="94" r="1.2"/></g>` : ''}`;
 
-  const hl = `fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".55"`;
+  // horns, drawn from the base (0,0) sweeping up and back
+  const ring = 'fill="none" stroke-width="1" stroke-linecap="round"';
   const HORN = {
-    'swept-back': `<path d="M43 32C40 24 38 17 34 9C41 13 47 21 51 28Z" fill="${horn}" ${S(1.6)}/><path d="M41 25C39 20 38 16 36 13" ${hl}/>`,
-    'ram curl': `<path d="M47 31C38 27 36 17 42 13C48 10 52 16 48 19" fill="none" stroke="${ol}" stroke-width="7.5" stroke-linecap="round"/>
-      <path d="M47 31C38 27 36 17 42 13C48 10 52 16 48 19" fill="none" stroke="${horn}" stroke-width="4.3" stroke-linecap="round"/><path d="M41 26C38 23 38 18 40 16" ${hl}/>`,
-    spiky: `<path d="M44 32C42 26 40 21 37 15C42 18 46 23 49 28ZM49 28C49 24 49 21 51 17C53 21 54 24 54 27Z" fill="${horn}" ${S(1.6)}/><path d="M42 26C41 23 40 20 39 18" ${hl}/>`,
-    nubs: `<path d="M44 31C42 26 43 22 46 21C49 21 51 25 51 29Z" fill="${horn}" ${S(1.6)}/>`,
-    }[P.h];
-  const eyesOpen = (dx = 0, ry = 5) => [48, 72].map(x => `<ellipse cx="${x + dx}" cy="43" rx="4.2" ry="${ry}" fill="${eye}"/><circle cx="${x + dx + 1.5}" cy="41" r="1.7" fill="#fff"/><circle cx="${x + dx - 1.2}" cy="45.2" r=".8" fill="#fff"/>`).join('');
-  const arc = (x, up) => `<path d="M${x - 4.5} 44q4.5 ${up ? -5.5 : 3.5} 9 0" fill="none" stroke="${eye}" stroke-width="2.1" stroke-linecap="round"/>`;
-  const eyes = { cheer: arc(48, 1) + arc(72, 1), heart: arc(48, 1) + arc(72, 1), sleep: arc(48, 0) + arc(72, 0), shy: eyesOpen(-2),
-    wink: eyesOpen().split('<ellipse').slice(0, 2).join('<ellipse') + arc(72, 1), egg: eyesOpen(0, 5.6) }[pose] || eyesOpen();
+    'swept-back': `<path d="M-4 0C-4-9 1-17 13-22C7-15 5-8 4 0Z" fill="${horn}" ${S(1.6)}/><path d="M-2-6Q1-5 4-6M0-11Q3-10 6-12M4-15Q6-15 8-17" ${ring} stroke="${hornLine}" opacity=".6"/>`,
+    'ram curl': `<path d="M0 0C-3-10 5-17 12-13C16-10 13-4 9-6" fill="none" stroke="${ol}" stroke-width="7.5" stroke-linecap="round"/>
+      <path d="M0 0C-3-10 5-17 12-13C16-10 13-4 9-6" fill="none" stroke="${horn}" stroke-width="4.3" stroke-linecap="round"/>
+      <path d="M-1-6Q1-5 2-7M3-12Q4-10 6-11" ${ring} stroke="${hornLine}" opacity=".6"/>`,
+    spiky: `<path d="M-3.5 0C-2-6 1-12 5-19C5-12 5-6 4 0Z" fill="${horn}" ${S(1.6)}/><path d="M4-2C6-6 8-9 11-11C10-7 9-4 8-1Z" fill="${horn}" ${S(1.4)}/>
+      <path d="M-2-5Q1-4 4-5M0-10Q2-9 4-10" ${ring} stroke="${hornLine}" opacity=".6"/>`,
+    nubs: `<path d="M-4 0C-4-5 0-8 3-7C5-5 4-2 4 0Z" fill="${horn}" ${S(1.6)}/>`,
+  }[P.h];
+
+  const eyeAt = [[46, 42, 3.5, 4.5], [64, 42, 4.3, 5.3]];   // far eye (by the snout) is a little smaller
+  const eyesOpen = (dx = 0, k = 1) => eyeAt.map(([x, y, rx, ry]) => `<ellipse cx="${x + dx}" cy="${y}" rx="${rx}" ry="${ry * k}" fill="${eye}"/>
+    <circle cx="${x + dx + rx * .38}" cy="${y - ry * .4}" r="${rx * .42}" fill="#fff"/><circle cx="${x + dx - rx * .3}" cy="${y + ry * .45}" r="${rx * .2}" fill="#fff"/>`).join('');
+  const arc = ([x, y, rx], up) => `<path d="M${x - rx - .5} ${y + 1}q${rx + .5} ${up ? -5.5 : 3.5} ${2 * rx + 1} 0" fill="none" stroke="${eye}" stroke-width="2.1" stroke-linecap="round"/>`;
+  const both = up => arc(eyeAt[0], up) + arc(eyeAt[1], up);
+  const eyes = { cheer: both(1), heart: both(1), sleep: both(0), shy: eyesOpen(-1.5),
+    wink: eyesOpen().split('<ellipse').slice(0, 2).join('<ellipse') + arc(eyeAt[1], 1), egg: eyesOpen(0, 1.1) }[pose] || eyesOpen();
   const mouth = { wave: 'open', cheer: 'open', egg: 'open', sleep: 'o', wink: 'tongue' }[pose] || 'smile';
-  const mouthSvg = mouth === 'open' ? `<path d="M56.5 64.5q3.5 5.5 7 0Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
-    : mouth === 'o' ? `<circle cx="60" cy="65.5" r="1.3" fill="none" stroke="${eye}" stroke-width="1.2"/>`
-    : `<path d="M57 64q3 2.6 6 0" fill="none" stroke="${eye}" stroke-width="1.5" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M60.6 65.6q1.5 3.4 3 0" fill="#f29aab"/>' : ''}`;
+  const mouthSvg = mouth === 'open' ? `<path d="M35 56.5Q39 63 45 57.5Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
+    : mouth === 'o' ? `<circle cx="40" cy="58" r="1.3" fill="none" stroke="${eye}" stroke-width="1.2"/>`
+    : `<path d="M35 57Q39.5 60.5 45 57.5" fill="none" stroke="${eye}" stroke-width="1.5" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M40 59.4q1.6 3.4 3.2-.2" fill="#f29aab"/>' : ''}`;
   const tilt = { sleep: 'rotate(-10 60 64)', shy: 'rotate(6 60 64)', heart: 'rotate(-4 60 64)' }[pose] || '';
   const head = `<g transform="${tilt}">
-    ${mirror(`<path d="M37 45C33 42 29 42 27 43C30 45 31 47 32 48C29 49 27 51 27 53C30 53 33 53 35 54C33 56 33 58 33 59C36 58 38 57 40 55Z" fill="${c}" ${S(1.7)}/>${HORN}`)}
-    <path d="M51 29C51 23 54 19 57 18C56 22 57 25 59 27C59 21 62 16 65 15C64 20 65 24 66 27C67 23 70 20 72 20C71 24 71 27 70 30Z" fill="${ridge}" ${S(1.6)}/>
-    <path d="M60 23C76 23 86 32 86 44C86 52 81 57 75 61C70 65 66 71 60 72C54 71 50 65 45 61C39 57 34 52 34 44C34 32 44 23 60 23Z" fill="${c}" ${S()}/>
-    <path d="M52 55C55 52 65 52 68 55C68 61 64 68 60 69C56 68 52 61 52 55Z" fill="${belly}" opacity=".6"/>
-    ${eyes}<ellipse cx="57.4" cy="58.6" rx=".8" ry=".6" fill="${ol}"/><ellipse cx="62.6" cy="58.6" rx=".8" ry=".6" fill="${ol}"/>${mouthSvg}
-    ${mirror(`<ellipse cx="41" cy="51" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/>`)}
-    ${pose === 'shy' ? mirror('<path d="M38 48l1.5 2M41 47.5l1.5 2" stroke="#e07a9a" stroke-width="1"/>') : ''}
-    ${P.star ? `<path d="M60 29l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : ''}
-    ${hat ? `<path d="M51 26 59 3 68 25Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width="1.2" stroke-linejoin="round"/><circle cx="59" cy="3" r="3" fill="#fbe0a0"/>` : ''}</g>`;
+    <path d="M84 46C90 43 94 42 97 44C93 46 92 48 91 50C95 50 97 52 98 55C94 55 91 55 89 56C91 58 91 61 90 63C86 61 83 58 82 55Z" fill="${c}" ${S(1.7)}/>
+    <path d="M66 21C68 15 72 12 75 12C73 16 73 19 74 22C77 18 81 16 84 17C82 20 81 24 81 27C84 25 87 25 89 26C87 29 86 32 85 34Z" fill="${ridge}" ${S(1.6)}/>
+    <g transform="translate(71 25) scale(.82)">${HORN}</g><g transform="translate(57 24)">${HORN}</g>
+    <path d="M62 20C77 20 88 30 88 43C88 56 79 65 66 66C60 67 55 66 50 65C41 64 32 61 30 54C29 49 32 45 38 44C40 43 41 41 41 37C43 27 51 20 62 20Z" fill="${c}" ${S()}/>
+    <path d="M31 55C34 60 43 62 52 61C47 58 39 57 31 55Z" fill="${belly}" opacity=".7"/>
+    ${eyes}<ellipse cx="33.5" cy="49" rx="1" ry=".75" fill="${ol}"/>${mouthSvg}
+    <ellipse cx="66" cy="52" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/><ellipse cx="46" cy="51.5" rx="2.8" ry="1.8" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/>
+    ${pose === 'shy' ? '<path d="M63 49l1.5 2M66 48.5l1.5 2" stroke="#e07a9a" stroke-width="1"/>' : ''}
+    ${P.star ? `<path d="M58 28l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : ''}
+    ${hat ? `<path d="M54 24 62 2 70 23Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width="1.2" stroke-linejoin="round"/><circle cx="62" cy="2" r="3" fill="#fbe0a0"/>` : ''}</g>`;
   const egg = pose === 'egg' ? `<path d="M32 84 38 78 45 85 52 77 60 85 68 77 75 85 82 78 88 84Q91 113 60 114 29 113 32 84Z" fill="#fffaf2" ${S()}/>
     <circle cx="46" cy="98" r="2.5" fill="${c}" opacity=".7"/><circle cx="72" cy="104" r="3" fill="${c}" opacity=".7"/><circle cx="66" cy="94" r="1.8" fill="${c}" opacity=".7"/>
     <path d="M52 93l4 4-2 4" fill="none" stroke="${ol}" stroke-width="1.2"/>` : '';
   const arms = ARMS[pose].map(p => limb(p)).join('');
   const prop = pose === 'heart' ? `<path d="M60 96C51 90 51 82 55.5 82 58 82 60 84.5 60 84.5S62 82 64.5 82C69 82 69 90 60 96Z" fill="#f48aa5" ${S(1.6)}/>` : '';
   const extra = {
-    sleep: `<text x="84" y="34" font-size="9" fill="${ol}" font-family="Figtree,sans-serif">z</text><text x="91" y="25" font-size="12" fill="${ol}" font-family="Figtree,sans-serif">Z</text>`,
+    sleep: `<text x="84" y="22" font-size="9" fill="${ol}" font-family="Figtree,sans-serif">z</text><text x="91" y="13" font-size="12" fill="${ol}" font-family="Figtree,sans-serif">Z</text>`,
     fly: `<path d="M48 116q4-3 8 0M64 116q4-3 8 0" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
-    wave: `<path d="M97 44q3 4 0 8M101 41q4 6 0 12" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
-    cheer: `<g fill="#ffd96b">${[[28, 40], [92, 40], [24, 58]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>`,
+    wave: `<path d="M88 44q3 4 0 8M92 41q4 6 0 12" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
+    cheer: `<g fill="#ffd96b">${[[24, 36], [92, 36], [20, 58]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>`,
   }[pose] || '';
-  const glit = P.g === 'sparkly' ? `<g class="glit" fill="#ffe27a" stroke="#fff" stroke-width=".6">${[[20, 60], [100, 30], [96, 84], [26, 98], [64, 10]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>` : '';
-  const aura = d.rare ? `<ellipse class="aura" cx="60" cy="64" rx="54" ry="52" fill="${RARE[d.rare][1]}" opacity=".35"/>` : '';
-  return `<svg viewBox="0 0 120 120" class="dragon" aria-hidden="true">${aura}<ellipse cx="60" cy="112" rx="${pose === 'fly' ? 14 : 22}" ry="3" fill="#000" opacity=".07"/>
-    <g transform="translate(0 ${lift})">${wings}${tail}${legsBack}${body}${thighs}${bellySvg}${feetFront}${head}${egg}${arms}${prop}</g>${extra}${glit}</svg>`;
+  const glit = P.g === 'sparkly' ? `<g class="glit" fill="#ffe27a" stroke="#fff" stroke-width=".6">${[[18, 66], [100, 22], [100, 100], [24, 100], [48, 8]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>` : '';
+  const aura = d.rare ? `<ellipse class="aura" cx="62" cy="62" rx="54" ry="54" fill="${RARE[d.rare][1]}" opacity=".35"/>` : '';
+  return `<svg viewBox="0 0 120 120" class="dragon" aria-hidden="true">${aura}<ellipse cx="62" cy="112" rx="${fly ? 14 : 22}" ry="3" fill="#000" opacity=".07"/>
+    <g transform="translate(0 ${lift})">${wings}${tail}${farLeg}${body}${bellySvg}${nearLeg}${feetFront}${head}${egg}${arms}${prop}</g>${extra}${glit}</svg>`;
 }
 // hovering (or tapping) any dragon picture redraws it in another pose; card pictures step through all 10 in order
 document.addEventListener('mouseover', e => {
