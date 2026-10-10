@@ -1,55 +1,55 @@
 {
  "dragons": [
   {
-   "id": "mv1mj6kudv82",
+   "id": "mv1mrpx0rk9f",
    "name": "Demo Puff",
    "sex": "F",
    "genes": {
     "c": [
-     "N",
-     "N"
+     "B",
+     "P"
     ],
     "h": [
-     "H",
-     "H"
+     "A",
+     "A"
     ],
     "f": [
-     "f",
-     "F"
+     "M",
+     "M"
     ],
     "s": [
-     "s",
+     "S",
      "S"
     ],
     "t": [
      "T",
-     "t"
+     "T"
     ],
     "g": [
-     "G",
-     "g"
+     "g",
+     "G"
     ],
     "z": [
      "*"
     ]
    },
    "born": {
-    "builder": 3.8,
-    "seeker": 6.5,
-    "steady": 3.6,
-    "leader": 4,
-    "connector": 3.4,
-    "original": 1.9,
-    "recharge": 3.7
+    "builder": 1.9,
+    "seeker": 7.7,
+    "steady": 2.3,
+    "leader": 4.2,
+    "connector": 1.8,
+    "original": 3.6,
+    "recharge": 4.5
    },
    "traits": {
-    "builder": 3.8,
-    "seeker": 6.5,
-    "steady": 3.6,
-    "leader": 4,
-    "connector": 3.4,
-    "original": 1.9,
-    "recharge": 3.7
+    "builder": 1.9,
+    "seeker": 7.7,
+    "steady": 2.3,
+    "leader": 4.2,
+    "connector": 1.8,
+    "original": 3.6,
+    "recharge": 4.5
    },
    "rare": null,
    "hatched": "2026-10-01",
@@ -57,13 +57,13 @@
    "gen": 1,
    "points": 1,
    "visits": [],
-   "power": "can smell an unanswered question from a mile away",
-   "snack": "matcha cookies",
-   "quirk": "insists on sitting on warm laptops",
+   "power": "its eyes glow brighter the closer it gets to a discovery",
+   "snack": "honey toast",
+   "quirk": "sneezes tiny sparkles",
    "story": "Born in the observatory peaks, it found you while you were finishing \"Read the demo paper\" and decided anyone who finishes things like that is worth following home."
   },
   {
-   "id": "mv1mj6kupr47",
+   "id": "mv1mrpx0kmff",
    "name": "Demo Bean",
    "sex": "M",
    "genes": {
@@ -73,11 +73,11 @@
     ],
     "h": [
      "H",
-     "h"
+     "H"
     ],
     "f": [
      "F",
-     "f"
+     "F"
     ],
     "s": [
      "S",
@@ -85,7 +85,7 @@
     ],
     "t": [
      "t",
-     "t"
+     "T"
     ],
     "g": [
      "g",
@@ -97,22 +97,22 @@
     ]
    },
    "born": {
-    "builder": 7.8,
+    "builder": 7.9,
     "seeker": 3.8,
-    "steady": 3.3,
-    "leader": 4.7,
-    "connector": 3.2,
-    "original": 4.5,
-    "recharge": 4.6
+    "steady": 2.4,
+    "leader": 4.6,
+    "connector": 2.9,
+    "original": 2.3,
+    "recharge": 3.8
    },
    "traits": {
-    "builder": 7.8,
+    "builder": 7.9,
     "seeker": 3.8,
-    "steady": 3.3,
-    "leader": 4.7,
-    "connector": 3.2,
-    "original": 4.5,
-    "recharge": 4.6
+    "steady": 2.4,
+    "leader": 4.6,
+    "connector": 2.9,
+    "original": 2.3,
+    "recharge": 3.8
    },
    "rare": "Phoenix",
    "hatched": "2025-10-09",
@@ -120,13 +120,13 @@
    "gen": 1,
    "points": 1,
    "visits": [],
-   "power": "snaps any broken thing back together with a flick of its tail",
-   "snack": "strawberry mochi",
-   "quirk": "sneezes tiny sparkles",
+   "power": "turns a blank page into a blueprint in one breath",
+   "snack": "cloud cotton candy",
+   "quirk": "tilts its head at every question",
    "story": "Born in the glowing workshop caves, it found you while you were finishing \"Fix the demo site\" and decided anyone who finishes things like that is worth following home."
   },
   {
-   "id": "mv1mj6ku1fab",
+   "id": "mv1mrpx0rfwn",
    "name": "Demo Pip",
    "sex": "F",
    "genes": {
@@ -135,16 +135,16 @@
      "Y"
     ],
     "h": [
-     "H",
-     "h"
+     "K",
+     "K"
     ],
     "f": [
-     "F",
-     "f"
+     "L",
+     "L"
     ],
     "s": [
      "S",
-     "s"
+     "S"
     ],
     "t": [
      "t",
@@ -152,29 +152,29 @@
     ],
     "g": [
      "G",
-     "G"
+     "g"
     ],
     "z": [
      "*"
     ]
    },
    "born": {
-    "builder": 4.3,
-    "seeker": 1.1,
-    "steady": 3.1,
-    "leader": 3.9,
-    "connector": 3.8,
-    "original": 1.9,
-    "recharge": 7
+    "builder": 2,
+    "seeker": 1.7,
+    "steady": 4.2,
+    "leader": 4.4,
+    "connector": 1.8,
+    "original": 4.6,
+    "recharge": 6.5
    },
    "traits": {
-    "builder": 4.3,
-    "seeker": 1.1,
-    "steady": 3.1,
-    "leader": 3.9,
-    "connector": 3.8,
-    "original": 5.1,
-    "recharge": 7
+    "builder": 2,
+    "seeker": 1.7,
+    "steady": 4.2,
+    "leader": 4.4,
+    "connector": 1.8,
+    "original": 7.8,
+    "recharge": 6.5
    },
    "rare": null,
    "hatched": "2026-10-03",
@@ -189,12 +189,12 @@
     }
    ],
    "power": "can dim any room to the perfect cozy glow",
-   "snack": "sugar snap peas",
-   "quirk": "does a little hop when it is happy",
+   "snack": "peach rings",
+   "quirk": "collects shiny paper clips",
    "story": "Born in the moonlit tide pools, it found you while you were finishing \"Demo walk\" and decided anyone who finishes things like that is worth following home."
   },
   {
-   "id": "mv1mj6kuf0vu",
+   "id": "mv1mrpx0fq35",
    "name": "Demo Moss",
    "sex": "M",
    "genes": {
@@ -204,18 +204,143 @@
     ],
     "h": [
      "h",
-     "H"
+     "h"
     ],
     "f": [
-     "F",
+     "f",
      "f"
     ],
     "s": [
-     "s",
+     "S",
      "S"
     ],
     "t": [
      "t",
+     "T"
+    ],
+    "g": [
+     "G",
+     "g"
+    ],
+    "z": [
+     "*",
+     "-"
+    ]
+   },
+   "born": {
+    "builder": 1.8,
+    "seeker": 1.3,
+    "steady": 7.4,
+    "leader": 2.9,
+    "connector": 3.2,
+    "original": 3.3,
+    "recharge": 3.3
+   },
+   "traits": {
+    "builder": 1.8,
+    "seeker": 1.3,
+    "steady": 7.4,
+    "leader": 2.9,
+    "connector": 3.2,
+    "original": 3.3,
+    "recharge": 3.3
+   },
+   "rare": null,
+   "hatched": "2026-10-04",
+   "from": "Demo flashcards",
+   "gen": 1,
+   "points": 0,
+   "visits": [],
+   "power": "its scales get a tiny bit shinier every day you practice",
+   "snack": "cloud cotton candy",
+   "quirk": "does a little hop when it is happy",
+   "story": "Born in the quiet moss gardens, it found you while you were finishing \"Demo flashcards\" and decided anyone who finishes things like that is worth following home."
+  },
+  {
+   "id": "mv1mrpx0frm9",
+   "name": "Demo Crown",
+   "sex": "F",
+   "genes": {
+    "c": [
+     "P",
+     "P"
+    ],
+    "h": [
+     "A",
+     "K"
+    ],
+    "f": [
+     "F",
+     "L"
+    ],
+    "s": [
+     "s",
+     "s"
+    ],
+    "t": [
+     "t",
+     "T"
+    ],
+    "g": [
+     "g",
+     "G"
+    ],
+    "z": [
+     "*"
+    ]
+   },
+   "born": {
+    "builder": 1.7,
+    "seeker": 4.9,
+    "steady": 4.6,
+    "leader": 6.2,
+    "connector": 4.7,
+    "original": 1.9,
+    "recharge": 1.8
+   },
+   "traits": {
+    "builder": 1.7,
+    "seeker": 4.9,
+    "steady": 4.6,
+    "leader": 6.2,
+    "connector": 4.7,
+    "original": 1.9,
+    "recharge": 1.8
+   },
+   "rare": null,
+   "hatched": "2026-10-05",
+   "from": "Demo club meeting",
+   "gen": 1,
+   "points": 0,
+   "visits": [],
+   "power": "can carry a whole team on its back (if they hold on)",
+   "snack": "blueberry dumplings",
+   "quirk": "does a little hop when it is happy",
+   "story": "Born in the castle courtyards, it found you while you were finishing \"Demo club meeting\" and decided anyone who finishes things like that is worth following home."
+  },
+  {
+   "id": "mv1mrpx0xghg",
+   "name": "Demo Cloud",
+   "sex": "M",
+   "genes": {
+    "c": [
+     "B",
+     "B"
+    ],
+    "h": [
+     "H",
+     "h"
+    ],
+    "f": [
+     "L",
+     "f"
+    ],
+    "s": [
+     "S",
+     "s"
+    ],
+    "t": [
+     "T",
      "T"
     ],
     "g": [
@@ -228,147 +353,22 @@
     ]
    },
    "born": {
-    "builder": 2.8,
-    "seeker": 2.2,
-    "steady": 7.7,
+    "builder": 2.5,
+    "seeker": 1.8,
+    "steady": 3,
     "leader": 4.9,
-    "connector": 2.4,
-    "original": 1.2,
-    "recharge": 1.3
+    "connector": 6.4,
+    "original": 3,
+    "recharge": 4.5
    },
    "traits": {
-    "builder": 2.8,
-    "seeker": 2.2,
-    "steady": 7.7,
+    "builder": 2.5,
+    "seeker": 1.8,
+    "steady": 3,
     "leader": 4.9,
-    "connector": 2.4,
-    "original": 1.2,
-    "recharge": 1.3
-   },
-   "rare": null,
-   "hatched": "2026-10-04",
-   "from": "Demo flashcards",
-   "gen": 1,
-   "points": 0,
-   "visits": [],
-   "power": "its scales get a tiny bit shinier every day you practice",
-   "snack": "honey toast",
-   "quirk": "sleeps curled around its tail like a cinnamon roll",
-   "story": "Born in the quiet moss gardens, it found you while you were finishing \"Demo flashcards\" and decided anyone who finishes things like that is worth following home."
-  },
-  {
-   "id": "mv1mj6ku00nb",
-   "name": "Demo Crown",
-   "sex": "F",
-   "genes": {
-    "c": [
-     "P",
-     "P"
-    ],
-    "h": [
-     "H",
-     "h"
-    ],
-    "f": [
-     "F",
-     "F"
-    ],
-    "s": [
-     "S",
-     "s"
-    ],
-    "t": [
-     "t",
-     "t"
-    ],
-    "g": [
-     "g",
-     "g"
-    ],
-    "z": [
-     "*"
-    ]
-   },
-   "born": {
-    "builder": 1.6,
-    "seeker": 4,
-    "steady": 4.7,
-    "leader": 7.3,
-    "connector": 3.7,
-    "original": 2.3,
-    "recharge": 2.8
-   },
-   "traits": {
-    "builder": 1.6,
-    "seeker": 4,
-    "steady": 4.7,
-    "leader": 7.3,
-    "connector": 3.7,
-    "original": 2.3,
-    "recharge": 2.8
-   },
-   "rare": null,
-   "hatched": "2026-10-05",
-   "from": "Demo club meeting",
-   "gen": 1,
-   "points": 0,
-   "visits": [],
-   "power": "can carry a whole team on its back (if they hold on)",
-   "snack": "cloud cotton candy",
-   "quirk": "hides behind your laptop when it is shy",
-   "story": "Born in the castle courtyards, it found you while you were finishing \"Demo club meeting\" and decided anyone who finishes things like that is worth following home."
-  },
-  {
-   "id": "mv1mj6kuj8sa",
-   "name": "Demo Cloud",
-   "sex": "M",
-   "genes": {
-    "c": [
-     "B",
-     "B"
-    ],
-    "h": [
-     "h",
-     "H"
-    ],
-    "f": [
-     "f",
-     "F"
-    ],
-    "s": [
-     "s",
-     "S"
-    ],
-    "t": [
-     "t",
-     "t"
-    ],
-    "g": [
-     "g",
-     "G"
-    ],
-    "z": [
-     "*",
-     "-"
-    ]
-   },
-   "born": {
-    "builder": 3.5,
-    "seeker": 4.4,
-    "steady": 1.3,
-    "leader": 4.2,
-    "connector": 7.3,
-    "original": 1.3,
-    "recharge": 3.7
-   },
-   "traits": {
-    "builder": 3.5,
-    "seeker": 4.4,
-    "steady": 1.3,
-    "leader": 4.2,
-    "connector": 7.3,
-    "original": 1.3,
-    "recharge": 3.7
+    "connector": 6.4,
+    "original": 3,
+    "recharge": 4.5
    },
    "rare": null,
    "hatched": "2026-10-06",
@@ -377,12 +377,12 @@
    "points": 0,
    "visits": [],
    "power": "can deliver a message to anyone, anywhere, by sunset",
-   "snack": "warm milk tea",
-   "quirk": "hides behind your laptop when it is shy",
+   "snack": "matcha cookies",
+   "quirk": "insists on sitting on warm laptops",
    "story": "Born in the drifting cloud villages, it found you while you were finishing \"Email demo mentor\" and decided anyone who finishes things like that is worth following home."
   },
   {
-   "id": "mv1mj6kukssd",
+   "id": "mv1mrpx0qhst",
    "name": "Demo Bloom",
    "sex": "F",
    "genes": {
@@ -391,20 +391,20 @@
      "B"
     ],
     "h": [
-     "H",
+     "K",
      "h"
     ],
     "f": [
-     "f",
+     "M",
      "f"
     ],
     "s": [
-     "s",
-     "s"
+     "S",
+     "S"
     ],
     "t": [
      "T",
-     "T"
+     "t"
     ],
     "g": [
      "g",
@@ -415,22 +415,22 @@
     ]
    },
    "born": {
-    "builder": 3.3,
-    "seeker": 3.2,
-    "steady": 5,
-    "leader": 1.6,
-    "connector": 3.9,
-    "original": 7,
-    "recharge": 3.4
+    "builder": 5,
+    "seeker": 3.1,
+    "steady": 2.6,
+    "leader": 4.6,
+    "connector": 1.4,
+    "original": 7.9,
+    "recharge": 4.3
    },
    "traits": {
-    "builder": 3.3,
-    "seeker": 3.2,
-    "steady": 5,
-    "leader": 1.6,
-    "connector": 3.9,
-    "original": 7,
-    "recharge": 3.4
+    "builder": 5,
+    "seeker": 3.1,
+    "steady": 2.6,
+    "leader": 4.6,
+    "connector": 1.4,
+    "original": 7.9,
+    "recharge": 4.3
    },
    "rare": null,
    "hatched": "2026-10-07",
@@ -438,9 +438,9 @@
    "gen": 1,
    "points": 0,
    "visits": [],
-   "power": "nothing it makes has ever been made before",
-   "snack": "blueberry dumplings",
-   "quirk": "does a little hop when it is happy",
+   "power": "breathes sparks that turn into brand-new ideas",
+   "snack": "peach rings",
+   "quirk": "insists on sitting on warm laptops",
    "story": "Born in the wildflower valleys, it found you while you were finishing \"Write demo essay\" and decided anyone who finishes things like that is worth following home."
   }
  ],

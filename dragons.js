@@ -106,25 +106,31 @@ const pointChance = streakDays => Math.min(30, 12 + 2 * streakDays);
 const breedChance = match => 25 + (match ? 5 : 0);
 
 // ---------- genetics ----------
-const COLORS = { PP: ['pink', '#f9c6d1'], BB: ['sky', '#c4e2f8'], YY: ['butter', '#fbe4a3'], NN: ['midnight', '#4c4f96'], BP: ['lavender', '#d8c7f6'],
-  PY: ['peach', '#fbcfb3'], BY: ['mint', '#c8ecd5'], NP: ['orchid', '#c79ad8'], BN: ['periwinkle', '#9aa6e6'], NY: ['sage', '#b9d6a8'] };
+// 6 colors from 3 blending alleles (incomplete dominance)
+const COLORS = { PP: ['pink', '#f6c3d6'], BB: ['blue', '#c6dcf4'], YY: ['butter', '#fbe0a0'], BP: ['lavender', '#d9c8f5'], PY: ['peach', '#f9cdb0'], BY: ['mint', '#c9ead8'] };
+// al = alleles from most to least dominant; a = what each one looks like. Horns and wings have 4 alleles (a dominance series).
 const LOCI = [
-  { k: 'h', n: 'Horns', a: ['curly', 'nubs'] }, { k: 'f', n: 'Wings', a: ['fluffy', 'tiny bat'] }, { k: 's', n: 'Spots', a: ['freckles', 'plain'] },
-  { k: 't', n: 'Tail tip', a: ['heart', 'leaf'] }, { k: 'g', n: 'Glitter', a: ['no sparkle', 'sparkly'] },
+  { k: 'h', n: 'Horns', al: ['A', 'H', 'K', 'h'], a: ['swept-back', 'ram curl', 'spiky', 'nubs'] },
+  { k: 'f', n: 'Wings', al: ['M', 'F', 'L', 'f'], a: ['bat', 'feathered', 'fin', 'tiny'] },
+  { k: 's', n: 'Spots', al: ['S', 's'], a: ['freckles', 'plain'] },
+  { k: 't', n: 'Tail tip', al: ['T', 't'], a: ['heart', 'leaf'] },
+  { k: 'g', n: 'Glitter', al: ['G', 'g'], a: ['no sparkle', 'sparkly'] },
 ];
-const CODE = { P: 'GCA', B: 'GCT', Y: 'GCG', N: 'GCC', H: 'CAT', h: 'CAC', F: 'TTA', f: 'TTG', S: 'AGT', s: 'AGC', T: 'ACA', t: 'ACG', G: 'GGA', g: 'GGT', '*': 'TAC', '-': 'TAT', W: 'TGG' };
+const CODE = { P: 'GCA', B: 'GCT', Y: 'GCG', A: 'CAA', H: 'CAT', K: 'CAG', h: 'CAC', M: 'TTC', F: 'TTA', L: 'TTT', f: 'TTG',
+  S: 'AGT', s: 'AGC', T: 'ACA', t: 'ACG', G: 'GGA', g: 'GGT', '*': 'TAC', '-': 'TAT', W: 'TGG' };
 const colorOf = c => COLORS[[...c].sort().join('')];
-const showsDom = pair => pair.some(a => a === a.toUpperCase());
+const rank = (L, x) => L.al.indexOf(x);
+const sortPair = (L, pair) => [...pair].sort((x, y) => rank(L, x) - rank(L, y));
+const showOf = (L, pair) => L.a[rank(L, sortPair(L, pair)[0])];
 const hasStar = (z, sex) => sex === 'F' ? z[0] === '*' : z.every(a => a === '*');
 function pheno(g, sex) {
   const o = { color: colorOf(g.c), star: hasStar(g.z, sex) };
-  for (const L of LOCI) o[L.k] = showsDom(g[L.k]) ? L.a[0] : L.a[1];
+  for (const L of LOCI) o[L.k] = showOf(L, g[L.k]);
   return o;
 }
 function randomGenes(sex) {
-  const al = (U, l, pU = .5) => [0, 0].map(() => Math.random() < pU ? U : l);
-  const col = () => Math.random() < .12 ? 'N' : pick('PBY');   // midnight is the rare one
-  return { c: [col(), col()], h: al('H', 'h'), f: al('F', 'f'), s: al('S', 's'), t: al('T', 't'), g: al('G', 'g', .7),
+  const two = xs => [pick(xs), pick(xs)];
+  return { c: two('PBY'), h: two('AHKh'), f: two('MFLf'), s: two('Ss'), t: two('Tt'), g: two('GGGg'),
     z: (sex === 'F' ? [0] : [0, 0]).map(() => Math.random() < .3 ? '*' : '-') };
 }
 function cross(mom, dad, sex) {   // mom is ZW, dad is ZZ
@@ -133,7 +139,7 @@ function cross(mom, dad, sex) {   // mom is ZW, dad is ZZ
   g.z = sex === 'F' ? [pick(dad.z)] : [pick(dad.z), mom.z[0]];   // daughters get dad's Z + mom's W
   return g;
 }
-const genotype = (g, sex) => [[...g.c].sort().join(''), ...LOCI.map(L => [...g[L.k]].sort().join('')),
+const genotype = (g, sex) => [[...g.c].sort().join(''), ...LOCI.map(L => sortPair(L, g[L.k]).join('')),
   sex === 'F' ? `Z${g.z[0] === '*' ? '*' : ''}W` : g.z.map(a => 'Z' + (a === '*' ? '*' : '')).sort().join('')].join(' ');
 const sequence = (g, sex) => [g.c, ...LOCI.map(L => g[L.k]), sex === 'F' ? [g.z[0], 'W'] : g.z].map(p => p.map(a => CODE[a]).join('')).join(' ');
 // exact offspring odds, Punnett-square style
@@ -141,7 +147,7 @@ function offspringOdds(mom, dad) {
   const out = {};
   const tally = (k, f) => { const n = {}; for (const a of mom[k]) for (const b of dad[k]) { const v = f([a, b]); n[v] = (n[v] || 0) + 25; } return n; };
   out.Color = tally('c', p => colorOf(p)[0]);
-  for (const L of LOCI) out[L.n] = tally(L.k, p => showsDom(p) ? L.a[0] : L.a[1]);
+  for (const L of LOCI) out[L.n] = tally(L.k, p => showOf(L, p));
   const dStar = dad.z.filter(a => a === '*').length * 50;
   out['Star (daughters)'] = { star: dStar, none: 100 - dStar };
   out['Star (sons)'] = { star: mom.z[0] === '*' ? dStar : 0, none: 100 - (mom.z[0] === '*' ? dStar : 0) };
@@ -188,87 +194,89 @@ const ARMS = {
 };
 function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
   DRAG[d.id] = d;
-  const P = pheno(d.genes, d.sex), mt = mainTrait(d.traits), c = P.color[1], dark = P.color[0] === 'midnight';
-  const ol = mix(shade(c, -.5), '#5a3a2e', dark ? .15 : .45);   // outline: a deep version of the body color, warmed toward brown
-  const belly = mix(c, '#fff6e6', dark ? .45 : .72), ridge = shade(c, -.14), eye = dark ? '#1c1730' : '#4a2e22';
-  const wingFill = P.f === 'fluffy' ? '#fffaf6' : mix(c, '#ffffff', .35);
-  const S = `stroke="${ol}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"`;
+  const P = pheno(d.genes, d.sex), c = P.color[1];
+  const ol = mix(shade(c, -.5), '#5a3a2e', .45);   // outline: a deep version of the body color, warmed toward brown
+  const belly = mix(c, '#fff6e6', .72), ridge = shade(c, -.12), horn = '#fff4e0', eye = '#4a2e22', membrane = mix(c, '#ffffff', .3);
+  const S = (w = 2) => `stroke="${ol}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
   const limb = (path, w = 8.5) => `<path d="${path}" fill="none" stroke="${ol}" stroke-width="${w}" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${c}" stroke-width="${w - 3.6}" stroke-linecap="round"/>`;
+  const mirror = svg => `${svg}<g transform="translate(120 0) scale(-1 1)">${svg}</g>`;   // draw the right side, copy it to the left
   const low = pose === 'sit' || pose === 'sleep', lift = { sit: 5, sleep: 9, fly: -8, egg: 2 }[pose] || 0;
 
-  const wingR = P.f === 'fluffy'
-    ? `<path d="M73 70Q90 52 106 58Q101 62 104 67Q97 67 98 72Q91 71 90 77Q83 74 76 78Z" fill="${wingFill}" ${S}/><path d="M80 70Q90 64 99 64M82 74Q89 71 95 71" fill="none" stroke="${ol}" stroke-width="1" opacity=".5"/>`
-    : `<path d="M73 70Q88 48 104 52Q100 59 103 65Q95 63 94 71Q87 68 85 76Q80 72 75 78Z" fill="${wingFill}" ${S}/><path d="M76 70L101 54M78 73L94 66M80 76L86 70" stroke="${ol}" stroke-width="1" opacity=".45"/>`;
-  const wt = pose === 'fly' ? 'translate(74 72) rotate(-20) scale(1.3) translate(-74 -72)' : '';
-  const wings = `<g transform="${wt}">${wingR}</g><g transform="translate(120 0) scale(-1 1)"><g transform="${wt}">${wingR}</g></g>`;
+  const WING = {
+    bat: `<path d="M73 71C77 58 88 49 104 48C101 53 101 57 104 61C98 60 94 63 95 68C90 66 87 69 87 74C83 72 79 74 76 78Z" fill="${membrane}" ${S()}/>
+      <path d="M75 72L103 49M76 74L94 66M78 76L87 72" fill="none" ${S(1.2)} opacity=".55"/>`,
+    feathered: `<path d="M73 72C78 60 92 54 106 57C104 60 105 63 103 65C104 68 101 70 99 70C99 73 96 75 93 74C92 77 88 79 85 78C82 79 78 79 76 78Z" fill="#fffaf5" ${S()}/>
+      <path d="M80 70C87 64 95 62 102 62M80 74C85 71 91 69 97 69M80 77C84 75 88 74 91 74" fill="none" ${S(1.1)} opacity=".45"/>`,
+    fin: `<path d="M73 72C76 64 80 58 86 53C86 57 87 59 89 61C91 56 95 52 100 50C99 55 99 59 101 62C103 60 106 59 109 59C106 64 103 70 97 73C89 76 81 78 76 78Z" fill="${membrane}" ${S()}/>
+      <path d="M76 75C80 68 83 62 86 55M78 76C85 70 92 62 99 52M80 77C89 73 98 66 107 60" fill="none" ${S(1.1)} opacity=".45"/>`,
+    tiny: `<path d="M73 72C76 65 83 62 89 64C88 66 89 68 88 70C86 70 85 72 85 74C82 73 79 75 76 78Z" fill="${membrane}" ${S()}/>`,
+  }[P.f];
+  const wt = `translate(74 72) rotate(${pose === 'fly' ? -22 : -10}) scale(${pose === 'fly' ? 1.4 : 1.18}) translate(-74 -72)`;
+  const wings = mirror(`<g transform="${wt}">${WING}</g>`);
 
-  const [tp, tx, ty, ta] = low ? ['M70 102Q52 116 32 106', 32, 106, -110] : ['M72 96Q94 104 101 88', 101, 88, 20];
-  const tipShape = P.t === 'heart' ? `<path d="M0 4C-6 0-6-6-2.2-6 0-6 0-3.6 0-3.6S0-6 2.2-6C6-6 6 0 0 4Z" fill="${ridge}" ${S} stroke-width="1.6"/>`
-    : `<path d="M0 2Q8-6 0-14Q-8-6 0 2Z" fill="${ridge}" ${S} stroke-width="1.6"/>`;
-  const tail = pose === 'egg' ? '' : `${limb(tp, 11)}<g transform="translate(${tx} ${ty}) rotate(${ta})">${tipShape}</g>`;
+  const tipShape = P.t === 'heart' ? `<path d="M0 4C-6 0-6-6-2.2-6 0-6 0-3.6 0-3.6S0-6 2.2-6C6-6 6 0 0 4Z" fill="${ridge}" ${S(1.6)}/>`
+    : `<path d="M0 2Q8-6 0-14Q-8-6 0 2Z" fill="${ridge}" ${S(1.6)}/>`;
+  const tail = pose === 'egg' ? '' : low
+    ? `<path d="M64 102C54 110 42 111 35 104C32 101 31 97 33 95C35 101 41 104 48 103C54 102 59 100 62 97Z" fill="${c}" ${S()}/>
+       <path d="M57 100 55 94 52 101ZM47 103 44 97 42 102ZM38 100 33 97 36 102Z" fill="${ridge}" ${S(1.4)}/><g transform="translate(32 92) rotate(-30)">${tipShape}</g>`
+    : `<path d="M72 90C82 97 93 99 100 92C104 88 105 83 103 79C101 85 96 90 89 91C83 92 78 90 74 86Z" fill="${c}" ${S()}/>
+       <path d="M81 90 83 84 87 91ZM90 91 93 85 95 89ZM97 87 101 81 101 86Z" fill="${ridge}" ${S(1.4)}/><g transform="translate(104 76) rotate(25)">${tipShape}</g>`;
 
-  const feetBack = pose === 'egg' || low ? '' : pose === 'fly'
-    ? `<ellipse cx="52" cy="106" rx="5" ry="4" fill="${c}" ${S}/><ellipse cx="68" cy="107" rx="5" ry="4" fill="${c}" ${S}/>`
-    : `<ellipse cx="50" cy="105" rx="8" ry="4.6" fill="${c}" ${S}/><ellipse cx="70" cy="105" rx="8" ry="4.6" fill="${c}" ${S}/><path d="M47 107v-2M51 107v-2M67 107v-2M71 107v-2" stroke="${ol}" stroke-width="1.2" stroke-linecap="round"/>`;
-  const feetFront = low ? `<ellipse cx="49" cy="105" rx="8" ry="6" fill="${c}" ${S}/><ellipse cx="71" cy="105" rx="8" ry="6" fill="${c}" ${S}/>
-    <ellipse cx="49" cy="106" rx="4" ry="3" fill="${belly}"/><ellipse cx="71" cy="106" rx="4" ry="3" fill="${belly}"/>` : '';
-  const body = `<path d="M60 62C44 62 40 80 42 92 44 103 52 107 60 107 68 107 76 103 78 92 80 80 76 62 60 62Z" fill="${c}" ${S}/>
-    <path d="M60 70C51 70 49 82 50 92 51 100 55 103 60 103 65 103 69 100 70 92 71 82 69 70 60 70Z" fill="${belly}"/>
-    <path d="M53 80Q60 83 67 80M51 88Q60 91 69 88M52 96Q60 99 68 96" fill="none" stroke="${ol}" stroke-width="1.2" opacity=".25"/>
-    ${P.s === 'freckles' ? `<g fill="${ol}" opacity=".3"><circle cx="45" cy="84" r="1.3"/><circle cx="46" cy="90" r="1"/><circle cx="75" cy="84" r="1.3"/><circle cx="74" cy="90" r="1"/></g>` : ''}`;
+  const foot = `<path d="M38 107C37 102 42 101 47 101C52 101 56 102 56 107C56 109 52 109 47 109C42 109 38 109 38 107Z" fill="${c}" ${S()}/><path d="M44 105v3M49 105v3" ${S(1.2)}/>`;
+  const legsBack = pose === 'egg' || low ? '' : pose === 'fly'
+    ? mirror(`<ellipse cx="49" cy="97" rx="7" ry="8" fill="${c}" ${S()}/><path d="M45 106C44 103 47 102 50 102C53 102 55 103 55 106C55 108 52 108 50 108C47 108 45 108 45 106Z" fill="${c}" ${S()}/>`)
+    : '';
+  const thighs = pose === 'egg' || low ? '' : pose === 'fly' ? '' : mirror(`<ellipse cx="47" cy="95" rx="9" ry="10" fill="${c}" ${S()}/>${foot}`);
+  const feetFront = low ? mirror(`<ellipse cx="48" cy="104" rx="8.5" ry="6.5" fill="${c}" ${S()}/><ellipse cx="48" cy="105.5" rx="4" ry="3" fill="${belly}"/>
+    <circle cx="44.5" cy="101.5" r="1.3" fill="${belly}"/><circle cx="48" cy="100.5" r="1.3" fill="${belly}"/><circle cx="51.5" cy="101.5" r="1.3" fill="${belly}"/>`) : '';
+  const body = `<path d="M50 64C43 70 40 80 41 90C42 100 48 106 60 106C72 106 78 100 79 90C80 80 77 70 70 64Z" fill="${c}" ${S()}/>
+    <path d="M78 75 83 77 79 81ZM79 84 84 86 79 89Z" fill="${ridge}" ${S(1.3)}/>`;
+  const bellySvg = `<path d="M60 70C53 70 50 79 50 88C50 97 54 102 60 102C66 102 70 97 70 88C70 79 67 70 60 70Z" fill="${belly}" stroke="${ol}" stroke-width="1.1" stroke-opacity=".45"/>
+    <path d="M53 79Q60 82 67 79M51 87Q60 90 69 87M52 95Q60 98 68 95" fill="none" stroke="${ol}" stroke-width="1.1" opacity=".3"/>
+    ${P.s === 'freckles' ? mirror(`<g fill="${ol}" opacity=".3"><circle cx="44" cy="82" r="1.2"/><circle cx="45" cy="87" r=".9"/></g>`) : ''}`;
 
-  const horns = P.h === 'curly'
-    ? `<g fill="none" stroke-linecap="round"><path d="M44 31C39 22 45 17 48 21 50 24 46 25 46 23" stroke="${ol}" stroke-width="6"/><path d="M44 31C39 22 45 17 48 21 50 24 46 25 46 23" stroke="#fff4e0" stroke-width="3"/>
-       <path d="M76 31C81 22 75 17 72 21 70 24 74 25 74 23" stroke="${ol}" stroke-width="6"/><path d="M76 31C81 22 75 17 72 21 70 24 74 25 74 23" stroke="#fff4e0" stroke-width="3"/></g>`
-    : `<g fill="#fff4e0" ${S} stroke-width="1.6"><path d="M41 32 43 21 50 29Z"/><path d="M79 32 77 21 70 29Z"/></g>`;
-  const eyesOpen = (dx = 0, ry = 4.6) => [50, 70].map(x => `<ellipse cx="${x + dx}" cy="49" rx="3.8" ry="${ry}" fill="${eye}"/><circle cx="${x + dx + 1.4}" cy="47.2" r="1.5" fill="#fff"/><circle cx="${x + dx - 1}" cy="51" r=".7" fill="#fff"/>`).join('');
-  const arc = (x, up) => `<path d="M${x - 4} 50q4 ${up ? -5 : 3} 8 0" fill="none" stroke="${eye}" stroke-width="2" stroke-linecap="round"/>`;
-  const eyes = { cheer: arc(50, 1) + arc(70, 1), heart: arc(50, 1) + arc(70, 1), sleep: arc(50, 0) + arc(70, 0), shy: eyesOpen(-2),
-    wink: eyesOpen().split('<ellipse').slice(0, 2).join('<ellipse').replace(/<ellipse$/, '') + arc(70, 1), egg: eyesOpen(0, 5.3) }[pose] || eyesOpen();
+  const HORN = {
+    'swept-back': `<path d="M46 31C42 26 39 20 37 11C41 15 46 20 51 27Z" fill="${horn}" ${S(1.6)}/><path d="M41 19l3-1M43 23l3-1" ${S(1)} opacity=".5"/>`,
+    'ram curl': `<path d="M46 31C38 25 38 16 44 15C49 14 50 20 46 21" fill="none" stroke="${ol}" stroke-width="6.5" stroke-linecap="round"/>
+      <path d="M46 31C38 25 38 16 44 15C49 14 50 20 46 21" fill="none" stroke="${horn}" stroke-width="3.4" stroke-linecap="round"/>`,
+    spiky: `<path d="M45 31 39 15 50 27ZM50 27 50 18 54 26Z" fill="${horn}" ${S(1.6)}/>`,
+    nubs: `<path d="M44 31C42 25 44 22 47 23C50 24 51 27 50 30Z" fill="${horn}" ${S(1.6)}/>`,
+  }[P.h];
+  const eyesOpen = (dx = 0, ry = 5) => [49, 71].map(x => `<ellipse cx="${x + dx}" cy="46" rx="4.2" ry="${ry}" fill="${eye}"/><circle cx="${x + dx + 1.5}" cy="44" r="1.7" fill="#fff"/><circle cx="${x + dx - 1.2}" cy="48.2" r=".8" fill="#fff"/>`).join('');
+  const arc = (x, up) => `<path d="M${x - 4.5} 47q4.5 ${up ? -5.5 : 3.5} 9 0" fill="none" stroke="${eye}" stroke-width="2.1" stroke-linecap="round"/>`;
+  const eyes = { cheer: arc(49, 1) + arc(71, 1), heart: arc(49, 1) + arc(71, 1), sleep: arc(49, 0) + arc(71, 0), shy: eyesOpen(-2),
+    wink: eyesOpen().split('<ellipse').slice(0, 2).join('<ellipse') + arc(71, 1), egg: eyesOpen(0, 5.6) }[pose] || eyesOpen();
   const mouth = { wave: 'open', cheer: 'open', egg: 'open', sleep: 'o', wink: 'tongue' }[pose] || 'smile';
-  const mouthSvg = mouth === 'open' ? `<path d="M56 60q4 6.5 8 0Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
-    : mouth === 'o' ? `<circle cx="60" cy="62" r="1.4" fill="none" stroke="${eye}" stroke-width="1.2"/>`
-    : `<path d="M56 61q4 3.5 8 0" fill="none" stroke="${eye}" stroke-width="1.6" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M60.5 62.6q1.6 3.6 3.2 0" fill="#f29aab"/>' : ''}`;
-  // one accessory per main trait, so dragons of different personalities look different
-  const ACC = {
-    builder: `<path d="M35 36Q60 28 85 36" fill="none" stroke="#a57b62" stroke-width="3"/><circle cx="51" cy="33" r="5" fill="#cfeaf7" ${S} stroke-width="1.6"/><circle cx="69" cy="33" r="5" fill="#cfeaf7" ${S} stroke-width="1.6"/><circle cx="52.5" cy="31.5" r="1.4" fill="#fff"/><circle cx="70.5" cy="31.5" r="1.4" fill="#fff"/>`,
-    seeker: `<g fill="#fff3a0" stroke="#e8c860" stroke-width=".6">${[[45, 40], [76, 38], [40, 52]].map(([x, y]) => `<path d="M${x} ${y - 3}l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/>`).join('')}</g>`,
-    steady: `<path d="M60 26V17" stroke="#6fa86f" stroke-width="2" stroke-linecap="round"/><path d="M60 19Q52 12 50 18Q55 22 60 19ZM60 18Q67 9 71 14Q67 20 60 18Z" fill="#9fd49a" stroke="#5f9a5f" stroke-width="1.2"/>`,
-    leader: `<path d="M50 28 49 17 55 22 60 14 65 22 71 17 70 28Z" fill="#ffd96b" stroke="#d9a93a" stroke-width="1.4" stroke-linejoin="round"/><circle cx="60" cy="22" r="1.6" fill="#f48aa5"/>`,
-    connector: '',
-    original: `<g transform="translate(83 31)"><g fill="#ffc2d4" stroke="#e98aa8" stroke-width=".8">${[0, 72, 144, 216, 288].map(a => `<ellipse cx="0" cy="-4" rx="2.6" ry="4" transform="rotate(${a})"/>`).join('')}</g><circle r="1.6" fill="#ffd96b"/></g>`,
-    recharge: `<path d="M38 34Q50 12 74 22Q66 24 70 30Q56 26 38 34Z" fill="#cfd8ff" stroke="${ol}" stroke-width="1.4" stroke-linejoin="round"/><path d="M45 29l5-4M53 25l5-3M61 23l4-1" stroke="#fff" stroke-width="1.6"/><circle cx="76" cy="21" r="3.2" fill="#fff" stroke="${ol}" stroke-width="1.2"/>`,
-  };
-  const scarf = mt === 'connector' ? `<path d="M45 66Q60 74 75 66L75 70Q60 78 45 70Z" fill="#8ec5ec" stroke="${ol}" stroke-width="1.4" stroke-linejoin="round"/><path d="M68 71 72 82 66 80Z" fill="#8ec5ec" stroke="${ol}" stroke-width="1.4" stroke-linejoin="round"/>` : '';
+  const mouthSvg = mouth === 'open' ? `<path d="M56 59.5q4 6.5 8 0Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
+    : mouth === 'o' ? `<circle cx="60" cy="61" r="1.4" fill="none" stroke="${eye}" stroke-width="1.2"/>`
+    : `<path d="M56 60q4 3.5 8 0" fill="none" stroke="${eye}" stroke-width="1.6" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M60.5 61.6q1.6 3.6 3.2 0" fill="#f29aab"/>' : ''}`;
   const tilt = { sleep: 'rotate(-10 60 64)', shy: 'rotate(6 60 64)', heart: 'rotate(-4 60 64)' }[pose] || '';
   const head = `<g transform="${tilt}">
-    <path d="M34 48 26 46 33 42 27 37 35 38ZM86 48 94 46 87 42 93 37 85 38Z" fill="${c}" ${S} stroke-width="1.6"/>
-    ${horns}<path d="M51 28 55 18 59 27ZM58 27 62 15 66 27ZM65 28 69 19 71 30Z" fill="${ridge}" ${S} stroke-width="1.6"/>
-    <ellipse cx="60" cy="47" rx="27" ry="23" fill="${c}" ${S}/>
-    ${eyes}<circle cx="57.5" cy="56.5" r=".9" fill="${ol}"/><circle cx="62.5" cy="56.5" r=".9" fill="${ol}"/>${mouthSvg}
-    <ellipse cx="43" cy="57" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/><ellipse cx="77" cy="57" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/>
-    ${pose === 'shy' ? `<path d="M40 54l1.5 2M43 53.5l1.5 2M77 53.5l-1.5 2M80 54l-1.5 2" stroke="#e07a9a" stroke-width="1"/>` : ''}
-    ${P.s === 'freckles' ? `<g fill="${ol}" opacity=".35"><circle cx="40" cy="45" r="1"/><circle cx="42" cy="49" r=".9"/><circle cx="80" cy="45" r="1"/><circle cx="78" cy="49" r=".9"/></g>` : ''}
-    ${P.star ? `<path d="M60 33l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : ''}
-    ${hat ? `<path d="M50 27 59 4 68 26Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width="1.2" stroke-linejoin="round"/><circle cx="59" cy="4" r="3" fill="#fbe0a0"/>` : ACC[mt]}</g>`;
-  const egg = pose === 'egg' ? `<path d="M32 84 38 78 45 85 52 77 60 85 68 77 75 85 82 78 88 84Q91 113 60 114 29 113 32 84Z" fill="#fffaf2" ${S}/>
+    ${mirror(`<path d="M38 44C33 40 28 39 25 41C29 43 31 45 32 47C28 47 25 49 24 52C28 52 31 53 33 54C30 56 29 59 29 61C33 60 36 58 39 56Z" fill="${c}" ${S(1.8)}/>${HORN}`)}
+    <path d="M51 29C51 23 54 19 57 18C56 22 57 25 59 27C59 21 62 16 65 15C64 20 65 24 66 27C67 23 70 20 72 20C71 24 71 27 70 30Z" fill="${ridge}" ${S(1.6)}/>
+    <path d="M60 25C75 25 85 34 86 45C87 54 84 61 78 65C72 69 66 70 60 70C54 70 48 69 42 65C36 61 33 54 34 45C35 34 45 25 60 25Z" fill="${c}" ${S()}/>
+    <path d="M50 58C50 53 55 52 60 52C65 52 70 53 70 58C70 63 65 65 60 65C55 65 50 63 50 58Z" fill="${belly}" opacity=".55"/>
+    ${eyes}<circle cx="57.5" cy="55.5" r=".9" fill="${ol}"/><circle cx="62.5" cy="55.5" r=".9" fill="${ol}"/>${mouthSvg}
+    ${mirror(`<ellipse cx="42" cy="55" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/>`)}
+    ${pose === 'shy' ? mirror('<path d="M39 52l1.5 2M42 51.5l1.5 2" stroke="#e07a9a" stroke-width="1"/>') : ''}
+    ${P.s === 'freckles' ? mirror(`<g fill="${ol}" opacity=".35"><circle cx="39" cy="45" r="1"/><circle cx="41" cy="49" r=".9"/></g>`) : ''}
+    ${P.star ? `<path d="M60 31l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : ''}
+    ${hat ? `<path d="M51 26 59 3 68 25Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width="1.2" stroke-linejoin="round"/><circle cx="59" cy="3" r="3" fill="#fbe0a0"/>` : ''}</g>`;
+  const egg = pose === 'egg' ? `<path d="M32 84 38 78 45 85 52 77 60 85 68 77 75 85 82 78 88 84Q91 113 60 114 29 113 32 84Z" fill="#fffaf2" ${S()}/>
     <circle cx="46" cy="98" r="2.5" fill="${c}" opacity=".7"/><circle cx="72" cy="104" r="3" fill="${c}" opacity=".7"/><circle cx="66" cy="94" r="1.8" fill="${c}" opacity=".7"/>
     <path d="M52 93l4 4-2 4" fill="none" stroke="${ol}" stroke-width="1.2"/>` : '';
   const arms = ARMS[pose].map(p => limb(p)).join('');
-  const prop = pose === 'heart' ? `<path d="M60 96C51 90 51 82 55.5 82 58 82 60 84.5 60 84.5S62 82 64.5 82C69 82 69 90 60 96Z" fill="#f48aa5" ${S} stroke-width="1.6"/>` : '';
+  const prop = pose === 'heart' ? `<path d="M60 96C51 90 51 82 55.5 82 58 82 60 84.5 60 84.5S62 82 64.5 82C69 82 69 90 60 96Z" fill="#f48aa5" ${S(1.6)}/>` : '';
   const extra = {
     sleep: `<text x="84" y="34" font-size="9" fill="${ol}" font-family="Figtree,sans-serif">z</text><text x="91" y="25" font-size="12" fill="${ol}" font-family="Figtree,sans-serif">Z</text>`,
     fly: `<path d="M48 116q4-3 8 0M64 116q4-3 8 0" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
-    wave: `<path d="M92 46q3 4 0 8M96 43q4 6 0 12" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
+    wave: `<path d="M97 44q3 4 0 8M101 41q4 6 0 12" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
     cheer: `<g fill="#ffd96b">${[[28, 40], [92, 40], [24, 58]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>`,
   }[pose] || '';
-  const around = mt === 'original' ? `<g fill="#ffc2d4" opacity=".85">${[[16, 30], [104, 44], [12, 76], [108, 98]].map(([x, y], i) => `<ellipse cx="${x}" cy="${y}" rx="2.4" ry="3.6" transform="rotate(${i * 50} ${x} ${y})"/>`).join('')}</g>`
-    : mt === 'connector' ? `<g fill="none" stroke="#8ec5ec" stroke-width="1.8" stroke-linecap="round"><path d="M104 30a4 4 0 1 1-4-4"/><path d="M110 50a4 4 0 1 1-4-4"/><path d="M14 40a4 4 0 1 0 4-4"/></g>`
-    : mt === 'seeker' ? `<g fill="#fff3a0" stroke="#e8c860" stroke-width=".6">${[[18, 26], [104, 70]].map(([x, y]) => `<path d="M${x} ${y - 4}l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2z"/>`).join('')}</g>` : '';
   const glit = P.g === 'sparkly' ? `<g class="glit" fill="#ffe27a" stroke="#fff" stroke-width=".6">${[[20, 60], [100, 30], [96, 84], [26, 98], [64, 10]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>` : '';
   const aura = d.rare ? `<ellipse class="aura" cx="60" cy="64" rx="54" ry="52" fill="${RARE[d.rare][1]}" opacity=".35"/>` : '';
-  return `<svg viewBox="0 0 120 120" class="dragon" aria-hidden="true">${aura}<ellipse cx="60" cy="112" rx="${pose === 'fly' ? 14 : 22}" ry="3" fill="#000" opacity=".07"/>${around}
-    <g transform="translate(0 ${lift})">${wings}${tail}${feetBack}${body}${feetFront}${scarf}${head}${egg}${arms}${prop}</g>${extra}${glit}</svg>`;
+  return `<svg viewBox="0 0 120 120" class="dragon" aria-hidden="true">${aura}<ellipse cx="60" cy="112" rx="${pose === 'fly' ? 14 : 22}" ry="3" fill="#000" opacity=".07"/>
+    <g transform="translate(0 ${lift})">${wings}${tail}${legsBack}${body}${thighs}${bellySvg}${feetFront}${head}${egg}${arms}${prop}</g>${extra}${glit}</svg>`;
 }
 // hovering (or tapping) any dragon picture redraws it in another pose; card pictures step through all 10 in order
 document.addEventListener('mouseover', e => {
@@ -528,12 +536,12 @@ async function viewDragons() {
         <p class="geno">${genotype(d.genes, d.sex)}</p><p class="seq">${sequence(d.genes, d.sex)}</p>
         <table class="small"><tr><th>Gene</th><th>Alleles</th><th>DNA</th><th>Shows</th></tr>
           <tr><td>Color</td><td>${[...d.genes.c].sort().join('')}</td><td>${d.genes.c.map(a => CODE[a]).join('')}</td><td>${p.color[0]}</td></tr>
-          ${LOCI.map(L => { const g = [...d.genes[L.k]].sort(); return `<tr><td>${L.n}</td><td>${g.join('')}</td><td>${d.genes[L.k].map(a => CODE[a]).join('')}</td>
-            <td>${p[L.k]}${g[0] !== g[1] ? ` <span class="muted">(carries ${L.a[1]})</span>` : ''}</td></tr>`; }).join('')}
+          ${LOCI.map(L => { const g = sortPair(L, d.genes[L.k]); return `<tr><td>${L.n}</td><td>${g.join('')}</td><td>${d.genes[L.k].map(a => CODE[a]).join('')}</td>
+            <td>${p[L.k]}${g[0] !== g[1] ? ` <span class="muted">(carries ${L.a[rank(L, g[1])]})</span>` : ''}</td></tr>`; }).join('')}
           <tr><td>Sex + star</td><td>${genotype(d.genes, d.sex).split(' ').pop()}</td><td>${(d.sex === 'F' ? [d.genes.z[0], 'W'] : d.genes.z).map(a => CODE[a]).join('')}</td>
             <td>${d.sex === 'F' ? 'girl' : 'boy'}, ${p.star ? 'star mark' : 'no star'}${d.sex === 'M' && !p.star && d.genes.z.includes('*') ? ' <span class="muted">(carries star)</span>' : ''}</td></tr></table>
-        <p class="small muted">How to read it: each letter pair is one gene, one letter from each parent. Capital = dominant (shows with just one copy), lowercase = recessive (needs two).
-          Color blends: one pink + one blue = lavender. Each letter is written in DNA as 2 bases (decoder below the den).</p>
+        <p class="small muted">How to read it: each letter pair is one gene, one letter from each parent, with the stronger (dominant) letter first. The dominant one is what shows; the other is carried and can show up in babies.
+          Color blends instead: one pink + one blue = lavender. Each letter is written in DNA as a 3-base codon (decoder below the den).</p>
       </details>
     </div>`;
   };
@@ -563,6 +571,9 @@ async function viewDragons() {
     <section><details class="card"><summary><strong>Dragon genetics guide</strong></summary><div class="small">
       <p><strong>Sex uses the ZW system</strong>, like birds and many reptiles: girls are ZW, boys are ZZ. Daughters get their Z from dad (and W from mom); sons get one Z from each parent.</p>
       <p><strong>The star mark rides on the Z.</strong> A girl shows it with one starred Z. A boy needs two. That is the reverse of human X-linked traits like color blindness, where boys show it more.</p>
+      <p><strong>Horns and wings have 4 versions each</strong> in a dominance chain, like rabbit coat colors.
+        Horns: swept-back A &gt; ram curl H &gt; spiky K &gt; nubs h. Wings: bat M &gt; feathered F &gt; fin L &gt; tiny f.
+        A dragon shows whichever of its two letters is higher in the chain, so a nubs-horned dragon must be hh, and two AK parents can still have a spiky (KK) baby 1 time in 4.</p>
       <p><strong>Glitter is recessive</strong>: only gg dragons sparkle. Two Gg parents have a 1 in 4 chance of a sparkly baby.</p>
       <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y → PP pink, BB blue, YY butter, BP lavender, PY peach, BY mint.</p>
       <p><strong>Personality</strong>: a baby starts at the average of its parents' traits from the day they joined the den, not their grown ones. Ultra-rare traits pass on 10% of the time.</p>
