@@ -459,13 +459,14 @@ function dragonVisit(text, project) {
   });
 }
 function showVisit(d, msg, trait) {
-  document.querySelector('.visit')?.remove();
+  let box = document.querySelector('.visits');
+  if (!box) { box = document.createElement('div'); box.className = 'visits'; document.body.append(box); }
   const el = document.createElement('div');
   el.className = 'visit card'; el.setAttribute('role', 'status');
   el.innerHTML = `<div class="v-pic" data-dragon="${d.id}">${dragonSVG(d, { pose: 'wave' })}</div><div><div class="kind">${esc(dname(d))} came to visit · ${stage(d)}</div>
     <p>${esc(msg)}</p><p class="small muted">${TR[trait].n} +0.1 → ${d.traits[trait]}</p></div><button class="x" aria-label="Close">×</button>`;
   el.querySelector('.x').onclick = () => el.remove();
-  document.body.append(el);
+  box.append(el);
   setTimeout(() => el.remove(), 15000);
 }
 

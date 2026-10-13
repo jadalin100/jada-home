@@ -436,15 +436,15 @@ async function viewProjects() {
     </section>`;
 
   document.getElementById('saveLogs').onclick = async () => {
-    let n = 0; const said = [], names = [];
+    let n = 0; const said = [];
     for (const [i, p] of projects.entries()) {
       const v = document.getElementById('log' + i).value.trim();
       if (v === (logs[i][t] || '')) continue;
-      if (v) { logs[i][t] = v; said.push(v); names.push(p.name); } else delete logs[i][t];
+      if (v) { logs[i][t] = v; said.push([v, p.name]); } else delete logs[i][t];
       await saveLog(p.id, logs[i], `Work log ${t}: ${p.name}`); n++;
     }
     if (!n) toast('Nothing new to save.');
-    if (said.length) dragonVisit(said.join(' '), names.join(' & '));
+    said.forEach(([v, name]) => dragonVisit(v, name));   // one visit (and one +0.1) per project logged
   };
   document.getElementById('addP').onclick = async () => {
     const name = document.getElementById('newP').value.trim();

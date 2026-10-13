@@ -370,7 +370,8 @@ ul.facts li { margin: .2rem 0; }
 .die.miss svg polygon:first-child { fill: #ece8f2; stroke: #b9b3c6; }
 @keyframes tumble { 25% { transform: translate(-4px, -10px) rotate(-14deg); } 50% { transform: translateY(0) rotate(0); } 75% { transform: translate(4px, -8px) rotate(14deg); } }
 
-.visit { position: fixed; right: 16px; bottom: 76px; z-index: 60; max-width: min(380px, calc(100vw - 32px)); display: flex; gap: .7rem; align-items: flex-start;
+.visits { position: fixed; right: 16px; bottom: 76px; z-index: 60; display: flex; flex-direction: column; gap: .6rem; max-height: calc(100vh - 110px); overflow-y: auto; }
+.visit { max-width: min(380px, calc(100vw - 32px)); display: flex; gap: .7rem; align-items: flex-start;
   background: var(--paper); box-shadow: 0 18px 40px -16px rgba(44, 42, 53, .4); animation: slideIn .4s ease-out; }
 .visit .v-pic { flex: 0 0 70px; height: 70px; }
 .visit p { margin: .25rem 0; }
