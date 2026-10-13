@@ -224,12 +224,10 @@ function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
   const flip = s => `<g transform="translate(120 0) scale(-1 1)">${s}</g>`, both = s => s + flip(s);
   const eye = '#33281f', S = (w = 1.7) => `stroke="${v.OL}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
 
-  // a raised front leg, drawn right-side: a thick rounded stroke ending in a round paw with two toe lines
-  const arm = (path, [x, y]) => `<path d="${path}" fill="none" stroke="${v.OL}" stroke-width="8.4" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${v.B}" stroke-width="5" stroke-linecap="round"/>
-    <circle cx="${x}" cy="${y}" r="3.9" fill="${v.B}" ${S()}/><path d="M${x - 1.5} ${y - 3.6}l.3 1.8M${x + 1.5} ${y - 3.6}l-.3 1.8" ${S(1.1)}/>`;
-  const up = { wave: arm('M79 85Q90 79 91 64', [91, 62]), cheer: arm('M79 85Q92 78 94 64', [94, 62]), shy: arm('M79 86Q89 79 83 67', [83, 65]) }[pose];
-  const paws = (up || f(DPARTS.paw)) + flip(pose === 'wave' || !up ? f(DPARTS.paw) : up);   // wave raises only the right paw
-
+  // a raised front paw: the same curved paw, swung up around where it joins the body (that edge stays open, so it blends in like the resting paw)
+  const lift1 = deg => `<g transform="rotate(${deg} 74 83)">${f(DPARTS.paw)}</g>`;
+  const up = { wave: lift1(186), cheer: lift1(206), shy: lift1(183) }[pose];
+  const paws = !up ? f(DPARTS.paw) + flip(f(DPARTS.paw)) : pose === 'wave' ? up + flip(f(DPARTS.paw)) : up + flip(up);   // wave raises only the right paw
   const wingTurn = { fly: -18, cheer: -6, sleep: 10 }[pose] || 0;
   const wings = both(`<g transform="rotate(${wingTurn} 75 78.5)">${f(DPARTS.wing[P.p])}</g>`);
   const tail = pose === 'egg' ? '' : pose === 'sit' ? flip(f(DPARTS.tail[P.t])) : f(DPARTS.tail[P.t]);
