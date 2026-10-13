@@ -109,45 +109,56 @@ const breedChance = match => 25 + (match ? 5 : 0);
 // 10 colors from 4 blending alleles (incomplete dominance)
 const COLORS = { PP: ['pink', '#f6c3d6'], BB: ['blue', '#c6dcf4'], YY: ['butter', '#fbe0a0'], EE: ['moss', '#b3d4a4'], BP: ['lavender', '#d9c8f5'], PY: ['peach', '#f9cdb0'], BY: ['mint', '#c9ead8'],
   BE: ['sea glass', '#b7d9d6'], EP: ['oat', '#e6d8bf'], EY: ['lime', '#d9eaa6'] };
-// al = alleles from most to least dominant; a = what each one looks like. Horns and wings have 4 alleles (a dominance series).
+// wing-decoration color: 4 more blending alleles. name: [fill, rim, flower center]
+const SECOND = { WW: ['white', '#ffffff', '#b9c9b2', '#fbe7a0'], PP: ['pink', '#fbcfe0', '#e79bb9', '#fff3c4'], BB: ['sky', '#cbe6fc', '#86b6e0', '#fff3c4'], YY: ['butter', '#fde9a6', '#d9b65a', '#ffffff'],
+  BP: ['lavender', '#ddd0fa', '#a993e0', '#fff3c4'], PY: ['peach', '#fcd3b8', '#e3a07c', '#fff3c4'], PW: ['blush', '#fde6ee', '#e7a9c1', '#fff3c4'], BW: ['mist', '#e6f2fd', '#93bde3', '#fff3c4'],
+  WY: ['cream', '#fff6d6', '#d8bf75', '#ffffff'], BY: ['mint', '#d3f0e0', '#86c4a2', '#fff3c4'] };
+// al = alleles from most to least dominant; a = what each one looks like; dna = each allele's codon. Letters only need to be unique inside one gene.
 const LOCI = [
-  { k: 'h', n: 'Horns', al: ['A', 'H', 'K', 'h'], a: ['swept-back', 'ram curl', 'spiky', 'nubs'] },
-  { k: 'f', n: 'Wings', al: ['M', 'F', 'L', 'f'], a: ['bat', 'feathered', 'fin', 'tiny'] },
-  { k: 's', n: 'Spots', al: ['S', 's'], a: ['freckles', 'plain'] },
-  { k: 't', n: 'Tail tip', al: ['T', 't'], a: ['heart', 'leaf'] },
-  { k: 'g', n: 'Glitter', al: ['G', 'g'], a: ['no sparkle', 'sparkly'] },
+  { k: 'h', n: 'Horns', al: ['A', 'H', 'K', 'X', 'R', 'J', 'U', 'h'], a: ['swept-back', 'crescent', 'twin', 'tall', 'branched', 'hooked', 'upright', 'stubby'], dna: ['CAA', 'CAT', 'CAG', 'CGA', 'CGT', 'CGG', 'CGC', 'CAC'] },
+  { k: 'r', n: 'Frills', al: ['D', 'T', 'P', 'O', 'w'], a: ['double', 'triple', 'pointed', 'droopy', 'webbed'], dna: ['TTC', 'TTA', 'TTT', 'TCA', 'TTG'] },
+  { k: 't', n: 'Tail tip', al: ['T', 'S', 'C', 'F', 'U', 't'], a: ['heart', 'spade', 'club', 'fins', 'curl', 'leaf'], dna: ['ACA', 'ACT', 'ACC', 'AAA', 'AAT', 'ACG'] },
+  { k: 'p', n: 'Wing pattern', al: ['B', 'S', 'L', 'R', 'O', 'p'], a: ['blossoms', 'stardust', 'lace', 'pearls', 'ombre', 'plain'], dna: ['AGA', 'AGT', 'AGG', 'ATA', 'ATT', 'AGC'] },
+  { k: 'g', n: 'Glitter', al: ['G', 'g'], a: ['no sparkle', 'sparkly'], dna: ['GGA', 'GGT'] },
 ];
-const CODE = { P: 'GCA', B: 'GCT', Y: 'GCG', E: 'GCC', A: 'CAA', H: 'CAT', K: 'CAG', h: 'CAC', M: 'TTC', F: 'TTA', L: 'TTT', f: 'TTG',
-  S: 'AGT', s: 'AGC', T: 'ACA', t: 'ACG', G: 'GGA', g: 'GGT', '*': 'TAC', '-': 'TAT', W: 'TGG' };
+const CODE = { P: 'GCA', B: 'GCT', Y: 'GCG', E: 'GCC', '*': 'TAC', '-': 'TAT', W: 'TGG' };   // body color, star, W chromosome
+const CODE2 = { W: 'CTA', P: 'CTT', B: 'CTG', Y: 'CTC' };   // wing-decoration color
+// the ultra-rare traits each come with their own body color, which wins over the color genes
+const RARE_COLOR = { Starwish: 'galaxy', Moonglow: 'pearl', Hearth: 'gold', Phoenix: 'sunset', Rainbell: 'opal' };
 const colorOf = c => COLORS[[...c].sort().join('')];
+const secondOf = w => SECOND[[...w].sort().join('')];
 const rank = (L, x) => L.al.indexOf(x);
 const sortPair = (L, pair) => [...pair].sort((x, y) => rank(L, x) - rank(L, y));
 const showOf = (L, pair) => L.a[rank(L, sortPair(L, pair)[0])];
+const codon = (L, x) => L.dna[rank(L, x)];
 const hasStar = (z, sex) => sex === 'F' ? z[0] === '*' : z.every(a => a === '*');
 function pheno(g, sex) {
-  const o = { color: colorOf(g.c), star: hasStar(g.z, sex) };
+  const o = { color: colorOf(g.c), second: secondOf(g.w), star: hasStar(g.z, sex) };
   for (const L of LOCI) o[L.k] = showOf(L, g[L.k]);
   return o;
 }
 function randomGenes(sex) {
-  const two = xs => [pick(xs), pick(xs)];
-  return { c: two('PBYE'), h: two('AHKh'), f: two('MFLf'), s: two('Ss'), t: two('Tt'), g: two('GGGg'),
-    z: (sex === 'F' ? [0] : [0, 0]).map(() => Math.random() < .3 ? '*' : '-') };
+  const two = xs => [pick(xs), pick(xs)], g = { c: two('PBYE'), w: two('WPBY') };
+  for (const L of LOCI) g[L.k] = two(L.k === 'g' ? 'GGGg' : L.al);
+  g.z = (sex === 'F' ? [0] : [0, 0]).map(() => Math.random() < .3 ? '*' : '-');
+  return g;
 }
 function cross(mom, dad, sex) {   // mom is ZW, dad is ZZ
   const g = {};
-  for (const k of ['c', 'h', 'f', 's', 't', 'g']) g[k] = [pick(mom[k]), pick(dad[k])];
+  for (const k of ['c', 'w', ...LOCI.map(L => L.k)]) g[k] = [pick(mom[k]), pick(dad[k])];
   g.z = sex === 'F' ? [pick(dad.z)] : [pick(dad.z), mom.z[0]];   // daughters get dad's Z + mom's W
   return g;
 }
-const genotype = (g, sex) => [[...g.c].sort().join(''), ...LOCI.map(L => sortPair(L, g[L.k]).join('')),
+const genotype = (g, sex) => [[...g.c].sort().join(''), [...g.w].sort().join('').toLowerCase(), ...LOCI.map(L => sortPair(L, g[L.k]).join('')),
   sex === 'F' ? `Z${g.z[0] === '*' ? '*' : ''}W` : g.z.map(a => 'Z' + (a === '*' ? '*' : '')).sort().join('')].join(' ');
-const sequence = (g, sex) => [g.c, ...LOCI.map(L => g[L.k]), sex === 'F' ? [g.z[0], 'W'] : g.z].map(p => p.map(a => CODE[a]).join('')).join(' ');
+const sequence = (g, sex) => [g.c.map(a => CODE[a]).join(''), g.w.map(a => CODE2[a]).join(''), ...LOCI.map(L => g[L.k].map(a => codon(L, a)).join('')),
+  (sex === 'F' ? [g.z[0], 'W'] : g.z).map(a => CODE[a]).join('')].join(' ');
 // exact offspring odds, Punnett-square style
 function offspringOdds(mom, dad) {
   const out = {};
   const tally = (k, f) => { const n = {}; for (const a of mom[k]) for (const b of dad[k]) { const v = f([a, b]); n[v] = (n[v] || 0) + 25; } return n; };
   out.Color = tally('c', p => colorOf(p)[0]);
+  out['Wing color'] = tally('w', p => secondOf(p)[0]);
   for (const L of LOCI) out[L.n] = tally(L.k, p => showOf(L, p));
   const dStar = dad.z.filter(a => a === '*').length * 50;
   out['Star (daughters)'] = { star: dStar, none: 100 - dStar };
@@ -189,98 +200,69 @@ const mix = (a, b, t) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i,
 const POSES = ['stand', 'wave', 'cheer', 'sit', 'sleep', 'fly', 'egg', 'heart', 'wink', 'shy'];
 const POSE_NAMES = { stand: 'Standing', wave: 'Waving', cheer: 'Cheering', sit: 'Sitting', sleep: 'Napping', fly: 'Flying', egg: 'Peeking from its egg', heart: 'Holding a heart', wink: 'Winking', shy: 'Feeling shy' };
 const DRAG = {};   // id -> dragon, so hovering can redraw it in a new pose
-const ARMS = {
-  stand: ['M47 74Q41 82 44 90', 'M73 74Q79 82 76 90'], wave: ['M47 74Q41 82 44 90', 'M73 74Q91 70 91 52'], cheer: ['M47 74Q34 66 36 52', 'M73 74Q86 66 84 52'],
-  sit: ['M47 74Q43 84 50 90', 'M73 74Q77 84 70 90'], sleep: ['M47 76Q46 86 54 88', 'M73 76Q74 86 66 88'], fly: ['M47 74Q36 76 34 84', 'M73 74Q84 76 86 84'],
-  egg: ['M46 77Q38 81 41 86', 'M74 77Q82 81 79 86'], heart: ['M47 74Q46 86 55 87', 'M73 74Q74 86 65 87'], wink: ['M47 74Q41 82 44 90', 'M73 74Q83 80 79 89'],
-  shy: ['M47 74Q36 68 42 60', 'M73 74Q84 68 78 60'],
+// Shapes from the approved mockup (dragon-mockup/gen.py, exported by export.py). Right side only where a part is mirrored. {X} = a color filled in per dragon.
+const DPARTS = {"sil":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M60 30C74 30 84 36 86 45C88 53 88 59 86 63C84 66 81 68 78.5 69C80.5 76.77 82 90.59 80 100.95C79 105.27 72 107 60 107C48 107 41 105.27 40 100.95C38 90.59 39.5 76.77 41.5 69C39 68 36 66 34 63C32 59 32 53 34 45C36 36 46 30 60 30Z\"/>","chin":"<path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.6\" stroke-linecap=\"round\" d=\"M47 71.59Q60 76.77 73 71.59\"/>","belly":"<path fill=\"{BE}\" d=\"M60 77.64C53 77.64 50 85.41 50 92.32C50 99.23 54 103.55 60 103.55C66 103.55 70 99.23 70 92.32C70 85.41 67 77.64 60 77.64Z\"/>\n<path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".35\" d=\"M52 87.14q8 2.5 16 0M51 93.18q9 2.5 18 0M52 99.23q8 2.5 16 0\"/>","freck":"<g fill=\"{RI}\"><circle cx=\"76\" cy=\"88.86\" r=\"1.4\"/><circle cx=\"77.5\" cy=\"93.18\" r=\"1\"/><circle cx=\"75.5\" cy=\"96.64\" r=\"1.2\"/><g transform=\"translate(120 0) scale(-1 1)\"><circle cx=\"76\" cy=\"88.86\" r=\"1.4\"/><circle cx=\"77.5\" cy=\"93.18\" r=\"1\"/><circle cx=\"75.5\" cy=\"96.64\" r=\"1.2\"/></g></g>","feet":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M63 108.5C62 103.98 66 102.25 72 102.25C77 102.25 81 103.98 81 108.5C81 110.5 77 111.5 72 111.5C67 111.5 63 110.5 63 108.5Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linecap=\"round\" d=\"M69 107.5v3M74 107.5v3\"/><g transform=\"translate(120 0) scale(-1 1)\"><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M63 108.5C62 103.98 66 102.25 72 102.25C77 102.25 81 103.98 81 108.5C81 110.5 77 111.5 72 111.5C67 111.5 63 110.5 63 108.5Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linecap=\"round\" d=\"M69 107.5v3M74 107.5v3\"/></g>","paw":"<path fill=\"{B}\" d=\"M76.5 80.23C82 82.39 83.5 87.14 81.5 91.89C79.5 95.77 75 98.19 70.5 97.67C67.5 97.33 66.8 95.08 68.2 93.35C70.5 90.85 72 88 71.5 84.11Z\"/><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\" d=\"M76.5 80.23C82 82.39 83.5 87.14 81.5 91.89C79.5 95.77 75 98.19 70.5 97.67C67.5 97.33 66.8 95.08 68.2 93.35C70.2 91.28 71.6 89.04 71.7 86.45\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.2\" stroke-linecap=\"round\" d=\"M68.9 96.81l.7 -1.9M71.6 97.76l.3 -2M74.5 97.24l-.2 -2\"/>","crest":"<path stroke=\"{OL}\" stroke-width=\"1.5\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M54 32l2.5 -5 3.5 4 3.5 -4 2.5 5\"/>","snout":"<ellipse cx=\"60\" cy=\"64.5\" rx=\"9.5\" ry=\"5.6\" fill=\"{MZ}\"/>","blush":"<ellipse cx=\"83\" cy=\"62\" rx=\"4.2\" ry=\"2.6\" fill=\"{BL}\" opacity=\".75\"/><g transform=\"translate(120 0) scale(-1 1)\"><ellipse cx=\"83\" cy=\"62\" rx=\"4.2\" ry=\"2.6\" fill=\"{BL}\" opacity=\".75\"/></g>","nose":"<ellipse cx=\"62.6\" cy=\"62.6\" rx=\"1.1\" ry=\".85\" fill=\"{OL}\"/><g transform=\"translate(120 0) scale(-1 1)\"><ellipse cx=\"62.6\" cy=\"62.6\" rx=\"1.1\" ry=\".85\" fill=\"{OL}\"/></g>","freckFace":"<g fill=\"{RI}\"><circle cx=\"65.5\" cy=\"37.5\" r=\"1.1\"/><circle cx=\"69\" cy=\"40\" r=\"0.9\"/><circle cx=\"63\" cy=\"41\" r=\"0.8\"/><circle cx=\"86\" cy=\"64\" r=\"1\"/><circle cx=\"84\" cy=\"67\" r=\"0.8\"/><g transform=\"translate(120 0) scale(-1 1)\"><circle cx=\"65.5\" cy=\"37.5\" r=\"1.1\"/><circle cx=\"69\" cy=\"40\" r=\"0.9\"/><circle cx=\"63\" cy=\"41\" r=\"0.8\"/><circle cx=\"86\" cy=\"64\" r=\"1\"/><circle cx=\"84\" cy=\"67\" r=\"0.8\"/></g></g>","wing":{"plain":"<clipPath id=\"{CID}\"><path d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/></clipPath><path fill=\"{MB}\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><g clip-path=\"url(#{CID})\"></g><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linecap=\"round\" opacity=\".6\" d=\"M93.4 62.6L114.4 57.5M93.4 62.6L111.9 76.51M93.4 62.6L98.7 85.24\"/>","ombre":"<clipPath id=\"{CID}\"><path d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/></clipPath><path fill=\"{MB}\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><g clip-path=\"url(#{CID})\"><linearGradient id=\"g{CID}\" gradientUnits=\"userSpaceOnUse\" x1=\"81.1\" y1=\"78.4136\" x2=\"114.4\" y2=\"69.1727\"><stop offset=\".1\" stop-color=\"{MB}\" stop-opacity=\"0\"/><stop offset=\".75\" stop-color=\"{BE}\"/><stop offset=\"1\" stop-color=\"{AC}\"/></linearGradient><path fill=\"url(#g{CID})\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/></g><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linecap=\"round\" opacity=\".6\" d=\"M93.4 62.6L114.4 57.5M93.4 62.6L111.9 76.51M93.4 62.6L98.7 85.24\"/>","lace":"<clipPath id=\"{CID}\"><path d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/></clipPath><path fill=\"{MB}\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><g clip-path=\"url(#{CID})\"><path fill=\"none\" stroke=\"{AC}\" stroke-width=\"1.1\" opacity=\".9\" d=\"M110.6 58L109 59.7L107.6 61.3L106.7 63.1L106.3 65L106.3 67L106.7 69.26L107.5 71.59L108.8 74.1L106.1 73.75L103.8 73.92L101.9 74.7L100.3 76.17L99.1 78.5L97.8 81.52L95.2 80.23L92.6 79.36L90.3 79.19L87.8 79.62L85.3 80.66\"/><circle cx=\"110.5\" cy=\"59.6\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"108.6\" cy=\"63.2\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"108.1\" cy=\"67.5\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"109.0\" cy=\"72.02\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"107.0\" cy=\"74.87\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"103.0\" cy=\"76.08\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"99.9\" cy=\"79.54\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"94.8\" cy=\"81.61\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"90.0\" cy=\"80.92\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"85.1\" cy=\"81.95\" r=\"1.35\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/></g><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linecap=\"round\" opacity=\".6\" d=\"M93.4 62.6L114.4 57.5M93.4 62.6L111.9 76.51M93.4 62.6L98.7 85.24\"/>","stardust":"<clipPath id=\"{CID}\"><path d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/></clipPath><path fill=\"{MB}\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><g clip-path=\"url(#{CID})\"><path transform=\"translate(102.6 65.5)\" d=\"M0 2.4Q0.6 5.4 3.6 6Q0.6 6.6 0 9.6Q-0.6 6.6 -3.6 6Q-0.6 5.4 0 2.4Z\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\" stroke-linejoin=\"round\"/><path transform=\"translate(89.3 76.95)\" d=\"M0 3.4Q0.6 5.4 2.6 6Q0.6 6.6 0 8.6Q-0.6 6.6 -2.6 6Q-0.6 5.4 0 3.4Z\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\" stroke-linejoin=\"round\"/><path transform=\"translate(110.5 73.06)\" d=\"M0 3.8Q0.6 5.4 2.2 6Q0.6 6.6 0 8.2Q-0.6 6.6 -2.2 6Q-0.6 5.4 0 3.8Z\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\" stroke-linejoin=\"round\"/><path transform=\"translate(98.5 79.45)\" d=\"M0 4.4Q0.6 5.4 1.6 6Q0.6 6.6 0 7.6Q-0.6 6.6 -1.6 6Q-0.6 5.4 0 4.4Z\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\" stroke-linejoin=\"round\"/><circle cx=\"97.7\" cy=\"71.16\" r=\".8\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"85.4\" cy=\"80.83\" r=\".8\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"111.7\" cy=\"62.4\" r=\".8\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"104.4\" cy=\"78.41\" r=\".8\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"92.0\" cy=\"67.8\" r=\".8\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"107.1\" cy=\"69.43\" r=\".8\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/></g><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linecap=\"round\" opacity=\".6\" d=\"M93.4 62.6L114.4 57.5M93.4 62.6L111.9 76.51M93.4 62.6L98.7 85.24\"/>","blossoms":"<clipPath id=\"{CID}\"><path d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/></clipPath><path fill=\"{MB}\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><g clip-path=\"url(#{CID})\"><g transform=\"translate(101.9 68.1)\"><ellipse cx=\"0\" cy=\"2.64\" rx=\"2.3100000000000005\" ry=\"3.57\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(0)\"/><ellipse cx=\"0\" cy=\"2.64\" rx=\"2.3100000000000005\" ry=\"3.57\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(72)\"/><ellipse cx=\"0\" cy=\"2.64\" rx=\"2.3100000000000005\" ry=\"3.57\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(144)\"/><ellipse cx=\"0\" cy=\"2.64\" rx=\"2.3100000000000005\" ry=\"3.57\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(216)\"/><ellipse cx=\"0\" cy=\"2.64\" rx=\"2.3100000000000005\" ry=\"3.57\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(288)\"/><circle r=\"1.8900000000000001\" fill=\"{A2}\"/></g><g transform=\"translate(89.8 78.93)\"><ellipse cx=\"0\" cy=\"3.44\" rx=\"1.7600000000000002\" ry=\"2.72\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(0)\"/><ellipse cx=\"0\" cy=\"3.44\" rx=\"1.7600000000000002\" ry=\"2.72\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(72)\"/><ellipse cx=\"0\" cy=\"3.44\" rx=\"1.7600000000000002\" ry=\"2.72\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(144)\"/><ellipse cx=\"0\" cy=\"3.44\" rx=\"1.7600000000000002\" ry=\"2.72\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(216)\"/><ellipse cx=\"0\" cy=\"3.44\" rx=\"1.7600000000000002\" ry=\"2.72\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(288)\"/><circle r=\"1.4400000000000002\" fill=\"{A2}\"/></g><ellipse cx=\"111.4\" cy=\"71.85\" rx=\"1.2\" ry=\"1.9\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(30 111.4 66.3)\"/><ellipse cx=\"98.8\" cy=\"80.49\" rx=\"1.2\" ry=\"1.9\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(30 98.8 76.3)\"/><ellipse cx=\"93.7\" cy=\"69.78\" rx=\"1.2\" ry=\"1.9\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".4\" transform=\"rotate(30 93.7 63.9)\"/></g><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linecap=\"round\" opacity=\".6\" d=\"M93.4 62.6L114.4 57.5M93.4 62.6L111.9 76.51M93.4 62.6L98.7 85.24\"/>","pearls":"<clipPath id=\"{CID}\"><path d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/></clipPath><path fill=\"{MB}\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><g clip-path=\"url(#{CID})\"><circle cx=\"99.8\" cy=\"61.4\" r=\"1.24\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"104.4\" cy=\"60.6\" r=\"1.64\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"109.0\" cy=\"59.7\" r=\"2.03\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"98.8\" cy=\"66.9\" r=\"1.24\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"102.7\" cy=\"69.95\" r=\"1.64\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"106.6\" cy=\"72.63\" r=\"2.03\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"95.0\" cy=\"69.95\" r=\"1.24\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"96.1\" cy=\"74.61\" r=\"1.64\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/><circle cx=\"97.3\" cy=\"79.28\" r=\"2.03\" fill=\"{AC}\" stroke=\"{AD}\" stroke-width=\".45\"/></g><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\" d=\"M74.5 76.51Q92.4 57.9 115.4 56.7Q108.5 64.3 112.6 76.86Q103.7 75.39 98.9 85.75Q89.2 81.18 80.5 85.93Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linecap=\"round\" opacity=\".6\" d=\"M93.4 62.6L114.4 57.5M93.4 62.6L111.9 76.51M93.4 62.6L98.7 85.24\"/>"},"tail":{"heart":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M70 100.09C80 105.27 95 107 104 102.68C107 100.95 108 98.36 106 95.77C103 99.23 94 100.09 85 98.36C79 97.5 75 95.77 72 93.18Z\"/>\n<path stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M83 97.93l2.5 -4.5 2.5 5zM93 99.23l3 -4.5 2 5z\"/>\n<g transform=\"translate(107 97.5) rotate(40)\"><path stroke=\"{OL}\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M0 11C-7 6 -7 -1 -2.5 -1 0 -1 0 2 0 2S0 -1 2.5 -1C7 -1 7 6 0 11Z\"/></g><g fill=\"{RI}\"><circle cx=\"84\" cy=\"102.25\" r=\"1.1\"/><circle cx=\"91\" cy=\"103.37\" r=\"1.3\"/><circle cx=\"98\" cy=\"102.68\" r=\"1\"/></g>","leaf":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M70 100.09C80 105.27 95 107 104 102.68C107 100.95 108 98.36 106 95.77C103 99.23 94 100.09 85 98.36C79 97.5 75 95.77 72 93.18Z\"/>\n<path stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M83 97.93l2.5 -4.5 2.5 5zM93 99.23l3 -4.5 2 5z\"/>\n<g transform=\"translate(107 97.5) rotate(40)\"><path stroke=\"{OL}\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M0 9Q8 1 0 -7Q-8 1 0 9Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M0 7V-4\"/></g><g fill=\"{RI}\"><circle cx=\"84\" cy=\"102.25\" r=\"1.1\"/><circle cx=\"91\" cy=\"103.37\" r=\"1.3\"/><circle cx=\"98\" cy=\"102.68\" r=\"1\"/></g>","spade":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M70 100.09C80 105.27 95 107 104 102.68C107 100.95 108 98.36 106 95.77C103 99.23 94 100.09 85 98.36C79 97.5 75 95.77 72 93.18Z\"/>\n<path stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M83 97.93l2.5 -4.5 2.5 5zM93 99.23l3 -4.5 2 5z\"/>\n<g transform=\"translate(107 97.5) rotate(40)\"><path stroke=\"{OL}\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M0 -6C5 0 8 4 4 8C2 9 1 8 0 10C-1 8 -2 9 -4 8C-8 4 -5 0 0 -6Z\"/></g><g fill=\"{RI}\"><circle cx=\"84\" cy=\"102.25\" r=\"1.1\"/><circle cx=\"91\" cy=\"103.37\" r=\"1.3\"/><circle cx=\"98\" cy=\"102.68\" r=\"1\"/></g>","club":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M70 100.09C80 105.27 95 107 104 102.68C107 100.95 108 98.36 106 95.77C103 99.23 94 100.09 85 98.36C79 97.5 75 95.77 72 93.18Z\"/>\n<path stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M83 97.93l2.5 -4.5 2.5 5zM93 99.23l3 -4.5 2 5z\"/>\n<g transform=\"translate(107 97.5) rotate(40)\"><circle stroke=\"{OL}\" stroke-width=\"1.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" cx=\"0\" cy=\"3\" r=\"5.5\"/><circle cx=\"-1.8\" cy=\"1\" r=\"1.4\" fill=\"#fff\" opacity=\".5\"/></g><g fill=\"{RI}\"><circle cx=\"84\" cy=\"102.25\" r=\"1.1\"/><circle cx=\"91\" cy=\"103.37\" r=\"1.3\"/><circle cx=\"98\" cy=\"102.68\" r=\"1\"/></g>","fins":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M70 100.09C80 105.27 95 107 104 102.68C107 100.95 108 98.36 106 95.77C103 99.23 94 100.09 85 98.36C79 97.5 75 95.77 72 93.18Z\"/>\n<path stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M83 97.93l2.5 -4.5 2.5 5zM93 99.23l3 -4.5 2 5z\"/>\n<g transform=\"translate(107 97.5) rotate(40)\"><path stroke=\"{OL}\" stroke-width=\"1.5\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{MB}\" d=\"M0 8C-2 3 -8 0 -11 2C-9 5 -5 7 0 8Z\"/><path stroke=\"{OL}\" stroke-width=\"1.5\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{MB}\" d=\"M0 8C2 3 8 0 11 2C9 5 5 7 0 8Z\"/></g><g fill=\"{RI}\"><circle cx=\"84\" cy=\"102.25\" r=\"1.1\"/><circle cx=\"91\" cy=\"103.37\" r=\"1.3\"/><circle cx=\"98\" cy=\"102.68\" r=\"1\"/></g>","curl":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M70 100.09C80 105.27 95 107 104 102.68C107 100.95 108 98.36 106 95.77C103 99.23 94 100.09 85 98.36C79 97.5 75 95.77 72 93.18Z\"/>\n<path stroke=\"{OL}\" stroke-width=\"1.3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M83 97.93l2.5 -4.5 2.5 5zM93 99.23l3 -4.5 2 5z\"/>\n<g transform=\"translate(107 97.5) rotate(40)\"><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"6.4\" stroke-linecap=\"round\" d=\"M0 9C-1 1 8 -2 9 4C10 8 5 9 4.5 6\"/><path fill=\"none\" stroke=\"{B}\" stroke-width=\"3\" stroke-linecap=\"round\" d=\"M0 9C-1 1 8 -2 9 4C10 8 5 9 4.5 6\"/></g><g fill=\"{RI}\"><circle cx=\"84\" cy=\"102.25\" r=\"1.1\"/><circle cx=\"91\" cy=\"103.37\" r=\"1.3\"/><circle cx=\"98\" cy=\"102.68\" r=\"1\"/></g>"},"frill":{"double":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M85 47Q94 43 97 47Q95 51 88 52Q97 52 97 57Q94 61 86 59Z\"/>","triple":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M85 44Q93 39 96 42Q95 46 89 47Q97 47 97 51Q95 54 89 54Q96 56 95 60Q91 63 86 60Z\"/>","pointed":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M85 46Q93 43 100 42Q95 47 93 50Q98 52 100 55Q93 58 86 59Z\"/>","droopy":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M85 48Q95 47 99 56Q100 61 95 61Q90 61 86 58Z\"/>","webbed":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{B}\" d=\"M85 45Q96 37 100 42Q101 52 86 60Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".5\" d=\"M86 53L98 42M86 55L99.5 48M86 57L97 53\"/>"},"horn":{"swept-back":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M70 33C73 26 77 21 83 18C82 25 80 31 77 36Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M73 28l3.5 1M76 23l3 1\"/>","crescent":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M70 34C70 26 75 20 84 17C80 21 79 24 80 28C80 31 79 34 77 36Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M71.5 28l4.5 .5M74 23l4 .5\"/>","twin":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M77 37C80 32 84 30 89 29C88 33 85 37 81 39Z\"/><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M70 33C72 27 76 23 81 20C80 26 78 31 76 35Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M72.5 28l3.5 1M81 33.5l2.5 1.5\"/>","tall":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M70 33C72 24 76 16 81 10C81 19 79 28 77 36Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M72.5 28l4 .5M74.5 21l3.5 .5M77 15l2.5 .5\"/>","branched":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M77 28C80 25 84 23 88 23C86 26 83 29 79 31Z\"/><path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M70 33C73 26 77 21 83 18C82 25 80 31 77 36Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M73 28l3.5 1\"/>","hooked":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M70 33C72 24 78 18 86 18C88 18 89.5 20 88.5 22.5C85.5 21.5 82.5 22.5 80.5 26C79.5 30 78 33 77 36Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M72.5 28l3.5 1M76 22.5l3 1.5\"/>","upright":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M70 34C70.5 26 72 20 74 15C76 20 77.5 27 77 35Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M71 28h5M72 22h3.5\"/>","stubby":"<path stroke=\"{OL}\" stroke-width=\"1.7\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"{RI}\" d=\"M70 34C71 30 73 26 77 24C77.5 28 77.5 32 77 36Z\"/><path fill=\"none\" stroke=\"{OL}\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\".55\" d=\"M72 30l3.5 .5\"/>"},"stars":"<path d=\"M50 33l.8 2.2 2.2 .8 -2.2 .8 -.8 2.2 -.8 -2.2 -2.2 -.8 2.2 -.8z\" fill=\"#ffe9a3\"/><path d=\"M72 31l.8 2.2 2.2 .8 -2.2 .8 -.8 2.2 -.8 -2.2 -2.2 -.8 2.2 -.8z\" fill=\"#ffe9a3\"/><path d=\"M44 84.55l.8 2.2 2.2 .8 -2.2 .8 -.8 2.2 -.8 -2.2 -2.2 -.8 2.2 -.8z\" fill=\"#ffe9a3\"/><path d=\"M77 93.18l.8 2.2 2.2 .8 -2.2 .8 -.8 2.2 -.8 -2.2 -2.2 -.8 2.2 -.8z\" fill=\"#ffe9a3\"/><path d=\"M97 65l.8 2.2 2.2 .8 -2.2 .8 -.8 2.2 -.8 -2.2 -2.2 -.8 2.2 -.8z\" fill=\"#ffe9a3\"/><path d=\"M22 65l.8 2.2 2.2 .8 -2.2 .8 -.8 2.2 -.8 -2.2 -2.2 -.8 2.2 -.8z\" fill=\"#ffe9a3\"/><path d=\"M62 77.64l.8 2.2 2.2 .8 -2.2 .8 -.8 2.2 -.8 -2.2 -2.2 -.8 2.2 -.8z\" fill=\"#ffe9a3\"/>"};
+const sat = (hex, k) => { const p = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)), m = (p[0] + p[1] + p[2]) / 3;
+  return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(m + (v - m) * k))).toString(16).padStart(2, '0')).join(''); };
+const grad = (id, dir, stops) => `<linearGradient id="${id}" x1="0" y1="0" x2="${dir[0]}" y2="${dir[1]}">${stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient>`;
+const LOOKS = {   // rare body colors: outline, belly, ridge, membrane, muzzle, gradient
+  galaxy: { OL: '#1c1d47', BE: '#7a6fc4', RI: '#3b3a8a', MZ: '#3e3f96', wingGrad: true, g: [[0, 1], [[0, '#2c2d73'], [1, '#5b4aa8']]] },
+  pearl: { OL: '#7d7391', BE: '#fffdf8', RI: '#e6dcf2', MB: '#f7f1ff', MZ: '#fbf6ff', g: [[1, 1], [[0, '#fdf6ff'], [.5, '#e9f3ff'], [1, '#fbe9f3']]] },
+  gold: { OL: '#86622a', BE: '#fff3c9', RI: '#e5b955', MB: '#fbe6a6', MZ: '#fbe1a0', g: [[1, 1], [[0, '#ffe7a0'], [1, '#f0c35e']]] },
+  sunset: { OL: '#8a4a3c', BE: '#fff0dc', RI: '#f39a86', MB: '#ffd6c2', MZ: '#ffc9b0', g: [[0, 1], [[0, '#ffb3a1'], [.55, '#ffc98f'], [1, '#f7a1c4']]] },
+  opal: { OL: '#6f7a9a', BE: '#fffaf3', RI: '#c9b8f0', MZ: '#e6f4ff', wingGrad: true, g: [[1, 1], [[0, '#ffd1e3'], [.35, '#fff1b8'], [.65, '#c8f0dc'], [1, '#c9dcff']]] },
 };
+let DID = 0;
 function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
   DRAG[d.id] = d;
-  const P = pheno(d.genes, d.sex), c = P.color[1];
-  const ol = mix(shade(c, -.5), '#5a3a2e', .45);   // outline: a deep version of the body color, warmed toward brown
-  const belly = mix(c, '#fff6e6', .72), ridge = shade(c, -.12), horn = mix(shade(c, -.18), '#fff4e0', .3), eye = '#4a2e22', membrane = mix(c, '#ffffff', .3);
-  const S = (w = 2) => `stroke="${ol}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
-  const limb = (path, w = 8.5) => `<path d="${path}" fill="none" stroke="${ol}" stroke-width="${w}" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${c}" stroke-width="${w - 3.6}" stroke-linecap="round"/>`;
-  const mirror = svg => `${svg}<g transform="translate(120 0) scale(-1 1)">${svg}</g>`;   // draw the right side, copy it to the left
-  const low = pose === 'sit' || pose === 'sleep', lift = { sit: 5, sleep: 9, fly: -8, egg: 2 }[pose] || 0;
+  const P = pheno(d.genes, d.sex), id = 'd' + (++DID), look = LOOKS[RARE_COLOR[d.rare]];
+  const c = P.color[1], [, AC, AD, A2] = P.second;
+  const v = look ? { B: `url(#b${id})`, MB: look.wingGrad ? `url(#b${id})` : look.MB, ...look }
+    : { B: c, OL: sat(shade(c, -.55), 1.6), BE: mix(c, '#fffbe6', .75), RI: shade(c, -.1), MB: mix(c, '#ffffff', .4), MZ: mix(c, '#ffffff', .18) };
+  Object.assign(v, { BL: '#f2a7a7', AC, AD, A2, CID: id + 'w' });
+  const f = s => s.replace(/\{(\w+)\}/g, (m, k) => v[k] ?? m);
+  const flip = s => `<g transform="translate(120 0) scale(-1 1)">${s}</g>`, both = s => s + flip(s);
+  const eye = '#33281f', S = (w = 1.7) => `stroke="${v.OL}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
 
-  const WING = {
-    bat: `<path d="M74 70C80 56 92 46 104 46C103 52 104 56 106 60C100 59 96 61 95 66C91 63 86 65 85 70C82 68 78 70 76 76Z" fill="${membrane}" ${S()}/>
-      <path d="M76 71Q90 56 104 47M77 73Q88 65 95 65M78 75Q83 70 85 70" fill="none" ${S(1.4)} opacity=".6"/>`,
-    feathered: `<path d="M74 72C80 58 94 52 106 54C108 58 105 61 102 62C105 64 103 68 99 68C101 71 98 74 94 73C95 76 91 79 87 77C84 79 79 78 76 77Z" fill="#fffaf5" ${S()}/>
-      <path d="M80 69C88 62 96 60 102 61M80 73C87 69 93 68 98 68M80 76C85 74 89 74 93 74" fill="none" ${S(1.1)} opacity=".4"/>`,
-    fin: `<path d="M74 72C78 62 84 55 88 50C89 55 91 58 93 60C96 55 100 51 105 49C104 54 104 58 106 61C108 60 110 60 112 61C108 67 102 72 94 75C87 77 80 78 76 77Z" fill="${membrane}" ${S()}/>
-      <path d="M77 74Q83 62 88 52M79 75Q92 63 104 50M81 76Q97 70 111 61" fill="none" ${S(1.1)} opacity=".45"/>`,
-    tiny: `<path d="M74 72C77 64 84 60 91 61C90 64 91 66 93 68C89 68 87 70 87 73C84 72 80 74 76 77Z" fill="${membrane}" ${S()}/>
-      <path d="M77 73Q84 66 91 62" fill="none" ${S(1.1)} opacity=".45"/>`,
-  }[P.f];
-  const wt = `translate(74 72) rotate(${pose === 'fly' ? -22 : -10}) scale(${pose === 'fly' ? 1.4 : 1.18}) translate(-74 -72)`;
-  const wings = mirror(`<g transform="${wt}">${WING}</g>`);
+  // a raised front leg, drawn right-side: a thick rounded stroke ending in a round paw with two toe lines
+  const arm = (path, [x, y]) => `<path d="${path}" fill="none" stroke="${v.OL}" stroke-width="8.4" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${v.B}" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="${x}" cy="${y}" r="3.9" fill="${v.B}" ${S()}/><path d="M${x - 1.5} ${y - 3.6}l.3 1.8M${x + 1.5} ${y - 3.6}l-.3 1.8" ${S(1.1)}/>`;
+  const up = { wave: arm('M79 85Q90 79 91 64', [91, 62]), cheer: arm('M79 85Q92 78 94 64', [94, 62]), shy: arm('M79 86Q89 79 83 67', [83, 65]) }[pose];
+  const paws = (up || f(DPARTS.paw)) + flip(pose === 'wave' || !up ? f(DPARTS.paw) : up);   // wave raises only the right paw
 
-  const tipShape = P.t === 'heart' ? `<path d="M0 4C-6 0-6-6-2.2-6 0-6 0-3.6 0-3.6S0-6 2.2-6C6-6 6 0 0 4Z" fill="${ridge}" ${S(1.6)}/>`
-    : `<path d="M0 2Q8-6 0-14Q-8-6 0 2Z" fill="${ridge}" ${S(1.6)}/>`;
-  const tail = pose === 'egg' ? '' : low
-    ? `<path d="M64 102C54 110 42 111 35 104C32 101 31 97 33 95C35 101 41 104 48 103C54 102 59 100 62 97Z" fill="${c}" ${S()}/>
-       <path d="M57 100 55 94 52 101ZM47 103 44 97 42 102ZM38 100 33 97 36 102Z" fill="${ridge}" ${S(1.4)}/><g transform="translate(32 92) rotate(-30)">${tipShape}</g>`
-    : `<path d="M72 90C82 97 93 99 100 92C104 88 105 83 103 79C101 85 96 90 89 91C83 92 78 90 74 86Z" fill="${c}" ${S()}/>
-       <path d="M81 90 83 84 87 91ZM90 91 93 85 95 89ZM97 87 101 81 101 86Z" fill="${ridge}" ${S(1.4)}/><g transform="translate(104 76) rotate(25)">${tipShape}</g>`;
+  const wingTurn = { fly: -18, cheer: -6, sleep: 10 }[pose] || 0;
+  const wings = both(`<g transform="rotate(${wingTurn} 75 78.5)">${f(DPARTS.wing[P.p])}</g>`);
+  const tail = pose === 'egg' ? '' : pose === 'sit' ? flip(f(DPARTS.tail[P.t])) : f(DPARTS.tail[P.t]);
+  const lift = { fly: -8, sit: 1 }[pose] || 0;
 
-  const foot = `<path d="M38 107C37 102 42 101 47 101C52 101 56 102 56 107C56 109 52 109 47 109C42 109 38 109 38 107Z" fill="${c}" ${S()}/><path d="M44 105v3M49 105v3" ${S(1.2)}/>`;
-  const legsBack = pose === 'egg' || low ? '' : pose === 'fly'
-    ? mirror(`<ellipse cx="49" cy="97" rx="7" ry="8" fill="${c}" ${S()}/><path d="M45 106C44 103 47 102 50 102C53 102 55 103 55 106C55 108 52 108 50 108C47 108 45 108 45 106Z" fill="${c}" ${S()}/>`)
-    : '';
-  const thighs = pose === 'egg' || low ? '' : pose === 'fly' ? '' : mirror(`<ellipse cx="47" cy="95" rx="9" ry="10" fill="${c}" ${S()}/>${foot}`);
-  const feetFront = low ? mirror(`<ellipse cx="48" cy="104" rx="8.5" ry="6.5" fill="${c}" ${S()}/><ellipse cx="48" cy="105.5" rx="4" ry="3" fill="${belly}"/>
-    <circle cx="44.5" cy="101.5" r="1.3" fill="${belly}"/><circle cx="48" cy="100.5" r="1.3" fill="${belly}"/><circle cx="51.5" cy="101.5" r="1.3" fill="${belly}"/>`) : '';
-  const body = `<path d="M50 64C43 70 40 80 41 90C42 100 48 106 60 106C72 106 78 100 79 90C80 80 77 70 70 64Z" fill="${c}" ${S()}/>
-    <path d="M78 75 83 77 79 81ZM79 84 84 86 79 89Z" fill="${ridge}" ${S(1.3)}/>`;
-  const bellySvg = `<path d="M60 70C53 70 50 79 50 88C50 97 54 102 60 102C66 102 70 97 70 88C70 79 67 70 60 70Z" fill="${belly}" stroke="${ol}" stroke-width="1.1" stroke-opacity=".45"/>
-    <path d="M53 79Q60 82 67 79M51 87Q60 90 69 87M52 95Q60 98 68 95" fill="none" stroke="${ol}" stroke-width="1.1" opacity=".3"/>
-    ${P.s === 'freckles' ? mirror(`<g fill="${ol}" opacity=".3"><circle cx="44" cy="82" r="1.2"/><circle cx="45" cy="87" r=".9"/></g>`) : ''}`;
-
-  const hl = `fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".55"`;
-  const HORN = {
-    'swept-back': `<path d="M43 32C40 24 38 17 34 9C41 13 47 21 51 28Z" fill="${horn}" ${S(1.6)}/><path d="M41 25C39 20 38 16 36 13" ${hl}/>`,
-    'ram curl': `<path d="M47 31C38 27 36 17 42 13C48 10 52 16 48 19" fill="none" stroke="${ol}" stroke-width="7.5" stroke-linecap="round"/>
-      <path d="M47 31C38 27 36 17 42 13C48 10 52 16 48 19" fill="none" stroke="${horn}" stroke-width="4.3" stroke-linecap="round"/><path d="M41 26C38 23 38 18 40 16" ${hl}/>`,
-    spiky: `<path d="M44 32C42 26 40 21 37 15C42 18 46 23 49 28ZM49 28C49 24 49 21 51 17C53 21 54 24 54 27Z" fill="${horn}" ${S(1.6)}/><path d="M42 26C41 23 40 20 39 18" ${hl}/>`,
-    nubs: `<path d="M44 31C42 26 43 22 46 21C49 21 51 25 51 29Z" fill="${horn}" ${S(1.6)}/>`,
-    }[P.h];
-  const eyesOpen = (dx = 0, ry = 5) => [49, 71].map(x => `<ellipse cx="${x + dx}" cy="46" rx="4.2" ry="${ry}" fill="${eye}"/><circle cx="${x + dx + 1.5}" cy="44" r="1.7" fill="#fff"/><circle cx="${x + dx - 1.2}" cy="48.2" r=".8" fill="#fff"/>`).join('');
-  const arc = (x, up) => `<path d="M${x - 4.5} 47q4.5 ${up ? -5.5 : 3.5} 9 0" fill="none" stroke="${eye}" stroke-width="2.1" stroke-linecap="round"/>`;
-  const eyes = { cheer: arc(49, 1) + arc(71, 1), heart: arc(49, 1) + arc(71, 1), sleep: arc(49, 0) + arc(71, 0), shy: eyesOpen(-2),
-    wink: eyesOpen().split('<ellipse').slice(0, 2).join('<ellipse') + arc(71, 1), egg: eyesOpen(0, 5.6) }[pose] || eyesOpen();
+  const open = (dx = 0, ry = 6.6) => [47, 73].map(x => `<ellipse cx="${x + dx}" cy="53" rx="5.6" ry="${ry}" fill="${eye}"/><circle cx="${x + dx + 2}" cy="50.2" r="2.2" fill="#fff"/><circle cx="${x + dx - 1.6}" cy="56" r=".9" fill="#fff"/>`);
+  const arc = (x, up) => `<path d="M${x - 5} ${up ? 54.5 : 52.5}q5 ${up ? -6.5 : 4.5} 10 0" fill="none" stroke="${eye}" stroke-width="2.3" stroke-linecap="round"/>`;
+  const eyes = { cheer: arc(47, 1) + arc(73, 1), heart: arc(47, 1) + arc(73, 1), sleep: arc(47, 0) + arc(73, 0), shy: open(-1.5).join(''),
+    wink: open()[0] + arc(73, 1), egg: open(0, 7.2).join('') }[pose] || open().join('');
   const mouth = { wave: 'open', cheer: 'open', egg: 'open', sleep: 'o', wink: 'tongue' }[pose] || 'smile';
-  const mouthSvg = mouth === 'open' ? `<path d="M56 59.5q4 6.5 8 0Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
-    : mouth === 'o' ? `<circle cx="60" cy="61" r="1.4" fill="none" stroke="${eye}" stroke-width="1.2"/>`
-    : `<path d="M56 60q4 3.5 8 0" fill="none" stroke="${eye}" stroke-width="1.6" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M60.5 61.6q1.6 3.6 3.2 0" fill="#f29aab"/>' : ''}`;
-  const tilt = { sleep: 'rotate(-10 60 64)', shy: 'rotate(6 60 64)', heart: 'rotate(-4 60 64)' }[pose] || '';
-  const head = `<g transform="${tilt}">
-    ${mirror(`<path d="M37 45C33 42 29 42 27 43C30 45 31 47 32 48C29 49 27 51 27 53C30 53 33 53 35 54C33 56 33 58 33 59C36 58 38 57 40 55Z" fill="${c}" ${S(1.7)}/>${HORN}`)}
-    <path d="M51 29C51 23 54 19 57 18C56 22 57 25 59 27C59 21 62 16 65 15C64 20 65 24 66 27C67 23 70 20 72 20C71 24 71 27 70 30Z" fill="${ridge}" ${S(1.6)}/>
-    <path d="M60 25C75 25 85 34 86 45C87 54 84 61 78 65C72 69 66 70 60 70C54 70 48 69 42 65C36 61 33 54 34 45C35 34 45 25 60 25Z" fill="${c}" ${S()}/>
-    <path d="M50 58C50 53 55 52 60 52C65 52 70 53 70 58C70 63 65 65 60 65C55 65 50 63 50 58Z" fill="${belly}" opacity=".6"/>
-    ${eyes}<circle cx="57.5" cy="55.5" r=".9" fill="${ol}"/><circle cx="62.5" cy="55.5" r=".9" fill="${ol}"/>${mouthSvg}
-    ${mirror(`<ellipse cx="42" cy="55" rx="4" ry="2.4" fill="#f4a3b4" opacity="${pose === 'shy' ? 1 : .7}"/>`)}
-    ${pose === 'shy' ? mirror('<path d="M39 52l1.5 2M42 51.5l1.5 2" stroke="#e07a9a" stroke-width="1"/>') : ''}
-    ${P.star ? `<path d="M60 31l1.3 2.7 3 .4-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.4z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>` : ''}
-    ${hat ? `<path d="M51 26 59 3 68 25Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width="1.2" stroke-linejoin="round"/><circle cx="59" cy="3" r="3" fill="#fbe0a0"/>` : ''}</g>`;
-  const egg = pose === 'egg' ? `<path d="M32 84 38 78 45 85 52 77 60 85 68 77 75 85 82 78 88 84Q91 113 60 114 29 113 32 84Z" fill="#fffaf2" ${S()}/>
-    <circle cx="46" cy="98" r="2.5" fill="${c}" opacity=".7"/><circle cx="72" cy="104" r="3" fill="${c}" opacity=".7"/><circle cx="66" cy="94" r="1.8" fill="${c}" opacity=".7"/>
-    <path d="M52 93l4 4-2 4" fill="none" stroke="${ol}" stroke-width="1.2"/>` : '';
-  const arms = ARMS[pose].map(p => limb(p)).join('');
-  const prop = pose === 'heart' ? `<path d="M60 96C51 90 51 82 55.5 82 58 82 60 84.5 60 84.5S62 82 64.5 82C69 82 69 90 60 96Z" fill="#f48aa5" ${S(1.6)}/>` : '';
+  const mouthSvg = mouth === 'open' ? `<path d="M56 66q4 6.5 8 0Z" fill="#e98a9c" stroke="${eye}" stroke-width="1.4" stroke-linejoin="round"/>`
+    : mouth === 'o' ? `<circle cx="60" cy="67.8" r="1.3" fill="none" stroke="${eye}" stroke-width="1.2"/>`
+    : `<path d="M56 66.5q4 3.2 8 0" fill="none" stroke="${v.OL}" stroke-width="1.6" stroke-linecap="round"/>${mouth === 'tongue' ? '<path d="M60.5 68.1q1.6 3.6 3.2 0" fill="#f29aab"/>' : ''}`;
+  const face = `${f(DPARTS.snout)}${eyes}${pose === 'shy' ? f(DPARTS.blush).replace(/opacity="\.75"/g, 'opacity="1"') + both('<path d="M80.5 59.5l1.5 2M83.5 59l1.5 2" stroke="#e07a9a" stroke-width="1" stroke-linecap="round"/>') : f(DPARTS.blush)}
+    ${f(DPARTS.nose)}${mouthSvg}${f(DPARTS.freckFace)}
+    ${P.star ? '<path d="M60 35.5l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#fff6b0" stroke="#e8c860" stroke-width=".6"/>' : ''}
+    ${hat ? '<path d="M51 31 60 7 69 31Z" fill="#f4a6b6" stroke="#e07a9a" stroke-width="1.2" stroke-linejoin="round"/><circle cx="60" cy="7" r="3" fill="#fbe0a0"/>' : ''}`;
+  const shell = pose === 'egg' ? `<path d="M30 88 37 82 44 89 52 81 60 89 68 81 76 89 83 82 90 88Q93 116 60 117 27 116 30 88Z" fill="#fffaf2" ${S()}/>
+    <circle cx="44" cy="102" r="2.5" fill="${c}" opacity=".7"/><circle cx="74" cy="107" r="3" fill="${c}" opacity=".7"/><circle cx="67" cy="98" r="1.8" fill="${c}" opacity=".7"/>` : '';
+  const prop = pose === 'heart' ? `<path d="M60 99C50.5 93 50.5 84.5 55.3 84.5 58 84.5 60 87 60 87S62 84.5 64.7 84.5C69.5 84.5 69.5 93 60 99Z" fill="#f48aa5" ${S(1.6)}/>` : '';
   const extra = {
-    sleep: `<text x="84" y="34" font-size="9" fill="${ol}" font-family="Figtree,sans-serif">z</text><text x="91" y="25" font-size="12" fill="${ol}" font-family="Figtree,sans-serif">Z</text>`,
-    fly: `<path d="M48 116q4-3 8 0M64 116q4-3 8 0" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
-    wave: `<path d="M97 44q3 4 0 8M101 41q4 6 0 12" fill="none" stroke="${ol}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
-    cheer: `<g fill="#ffd96b">${[[28, 40], [92, 40], [24, 58]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>`,
+    sleep: `<text x="88" y="32" font-size="9" fill="${v.OL}" font-family="Figtree,sans-serif">z</text><text x="95" y="23" font-size="12" fill="${v.OL}" font-family="Figtree,sans-serif">Z</text>`,
+    fly: `<path d="M48 117q4-3 8 0M64 117q4-3 8 0" fill="none" stroke="${v.OL}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
+    wave: `<path d="M99 56q3 4 0 8M103 53q4 6 0 12" fill="none" stroke="${v.OL}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>`,
+    cheer: `<g fill="#ffd96b">${[[24, 44], [96, 40], [20, 64]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>`,
   }[pose] || '';
-  const glit = P.g === 'sparkly' ? `<g class="glit" fill="#ffe27a" stroke="#fff" stroke-width=".6">${[[20, 60], [100, 30], [96, 84], [26, 98], [64, 10]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>` : '';
+  const glit = P.g === 'sparkly' ? `<g class="glit" fill="#ffe27a" stroke="#fff" stroke-width=".6">${[[18, 60], [102, 30], [100, 84], [22, 100], [64, 8]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>` : '';
   const aura = d.rare ? `<ellipse class="aura" cx="60" cy="64" rx="54" ry="52" fill="${RARE[d.rare][1]}" opacity=".35"/>` : '';
-  return `<svg viewBox="0 0 120 120" class="dragon" aria-hidden="true">${aura}<ellipse cx="60" cy="112" rx="${pose === 'fly' ? 14 : 22}" ry="3" fill="#000" opacity=".07"/>
-    <g transform="translate(0 ${lift})">${wings}${tail}${legsBack}${body}${thighs}${bellySvg}${feetFront}${head}${egg}${arms}${prop}</g>${extra}${glit}</svg>`;
+  const defs = look ? `<defs>${grad('b' + id, ...look.g)}</defs>` : '';
+  const body = `${wings}${tail}${both(f(DPARTS.frill[P.r]))}${both(f(DPARTS.horn[P.h]))}${f(DPARTS.sil)}${f(DPARTS.chin)}${f(DPARTS.belly)}${f(DPARTS.freck)}
+    ${pose === 'egg' ? '' : f(DPARTS.feet)}${shell}${prop}${paws}${f(DPARTS.crest)}${face}${RARE_COLOR[d.rare] === 'galaxy' ? DPARTS.stars : ''}`;
+  return `<svg viewBox="0 0 120 120" class="dragon" aria-hidden="true">${defs}${aura}<ellipse cx="60" cy="113" rx="${pose === 'fly' ? 14 : 24}" ry="3" fill="#000" opacity=".07"/>
+    <g transform="translate(0 ${lift})">${body}</g>${extra}${glit}</svg>`;
 }
 // hovering (or tapping) any dragon picture redraws it in another pose; card pictures step through all 10 in order
 document.addEventListener('mouseover', e => {
@@ -540,8 +522,9 @@ async function viewDragons() {
       <details class="genes"><summary class="small">Genes</summary>
         <p class="geno">${genotype(d.genes, d.sex)}</p><p class="seq">${sequence(d.genes, d.sex)}</p>
         <table class="small"><tr><th>Gene</th><th>Alleles</th><th>DNA</th><th>Shows</th></tr>
-          <tr><td>Color</td><td>${[...d.genes.c].sort().join('')}</td><td>${d.genes.c.map(a => CODE[a]).join('')}</td><td>${p.color[0]}</td></tr>
-          ${LOCI.map(L => { const g = sortPair(L, d.genes[L.k]); return `<tr><td>${L.n}</td><td>${g.join('')}</td><td>${d.genes[L.k].map(a => CODE[a]).join('')}</td>
+          <tr><td>Color</td><td>${[...d.genes.c].sort().join('')}</td><td>${d.genes.c.map(a => CODE[a]).join('')}</td><td>${RARE_COLOR[d.rare] ? `${RARE_COLOR[d.rare]} <span class="muted">(${d.rare} color; genes say ${p.color[0]})</span>` : p.color[0]}</td></tr>
+          <tr><td>Wing color</td><td>${[...d.genes.w].sort().join('').toLowerCase()}</td><td>${d.genes.w.map(a => CODE2[a]).join('')}</td><td>${p.second[0]}</td></tr>
+          ${LOCI.map(L => { const g = sortPair(L, d.genes[L.k]); return `<tr><td>${L.n}</td><td>${g.join('')}</td><td>${d.genes[L.k].map(a => codon(L, a)).join('')}</td>
             <td>${p[L.k]}${g[0] !== g[1] ? ` <span class="muted">(carries ${L.a[rank(L, g[1])]})</span>` : ''}</td></tr>`; }).join('')}
           <tr><td>Sex + star</td><td>${genotype(d.genes, d.sex).split(' ').pop()}</td><td>${(d.sex === 'F' ? [d.genes.z[0], 'W'] : d.genes.z).map(a => CODE[a]).join('')}</td>
             <td>${d.sex === 'F' ? 'girl' : 'boy'}, ${p.star ? 'star mark' : 'no star'}${d.sex === 'M' && !p.star && d.genes.z.includes('*') ? ' <span class="muted">(carries star)</span>' : ''}</td></tr></table>
@@ -576,13 +559,17 @@ async function viewDragons() {
     <section><details class="card"><summary><strong>Dragon genetics guide</strong></summary><div class="small">
       <p><strong>Sex uses the ZW system</strong>, like birds and many reptiles: girls are ZW, boys are ZZ. Daughters get their Z from dad (and W from mom); sons get one Z from each parent.</p>
       <p><strong>The star mark rides on the Z.</strong> A girl shows it with one starred Z. A boy needs two. That is the reverse of human X-linked traits like color blindness, where boys show it more.</p>
-      <p><strong>Horns and wings have 4 versions each</strong> in a dominance chain, like rabbit coat colors.
-        Horns: swept-back A &gt; ram curl H &gt; spiky K &gt; nubs h. Wings: bat M &gt; feathered F &gt; fin L &gt; tiny f.
-        A dragon shows whichever of its two letters is higher in the chain, so a nubs-horned dragon must be hh, and two AK parents can still have a spiky (KK) baby 1 time in 4.</p>
+      <p><strong>Horns, frills, tail tips, and wing patterns are dominance chains</strong>, like rabbit coat colors. A dragon shows whichever of its two letters is higher in the chain.
+        ${LOCI.filter(L => L.k !== 'g').map(L => `${L.n}: ${L.al.map((a, i) => `${L.a[i]} ${a}`).join(' &gt; ')}.`).join(' ')}
+        So a stubby-horned dragon must be hh, and two AK parents can still have a twin-horned (KK) baby 1 time in 4.</p>
       <p><strong>Glitter is recessive</strong>: only gg dragons sparkle. Two Gg parents have a 1 in 4 chance of a sparkly baby.</p>
       <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y, green E → PP pink, BB blue, YY butter, EE moss, BP lavender, PY peach, BY mint, BE sea glass, EP oat, EY lime. Steady dragons are always EE, so they always come out moss.</p>
+      <p><strong>Wing color blends too</strong> and colors the wing decorations: white W, pink P, sky B, butter Y → ${Object.entries(SECOND).map(([k, x]) => `${k.toLowerCase()} ${x[0]}`).join(', ')}.</p>
+      <p><strong>Ultra-rare colors</strong>: each ultra-rare trait brings its own body color, which beats the color genes (even Steady green): ${Object.entries(RARE_COLOR).map(([r, c]) => `${r} = ${c}`).join(', ')}. Every dragon has freckles.</p>
       <p><strong>Personality</strong>: a baby starts at the average of its parents' traits from the day they joined the den, not their grown ones. Ultra-rare traits pass on 10% of the time.</p>
-      <p><strong>DNA decoder</strong>: ${Object.entries(CODE).map(([a, c]) => `${a === '*' ? 'Z★' : a === '-' ? 'Z' : a === 'W' ? 'W chromosome' : a} = ${c}`).join(' · ')}</p>
+      <p><strong>DNA decoder</strong>: color ${Object.entries(CODE).map(([a, c]) => `${a === '*' ? 'Z★' : a === '-' ? 'Z' : a === 'W' ? 'W chromosome' : a} = ${c}`).join(' · ')}
+        · wing color ${Object.entries(CODE2).map(([a, c]) => `${a.toLowerCase()} = ${c}`).join(' · ')}
+        ${LOCI.map(L => `· ${L.n.toLowerCase()} ${L.al.map((a, i) => `${a} = ${L.dna[i]}`).join(' · ')}`).join(' ')}</p>
     </div></details></section>`;
 
   // breeding preview + roll
@@ -676,7 +663,7 @@ function dragonSelfTest() {
   ok(tameChance({ effort: 1, close: 1, imp: 1 }) === 10, 'lowest task = 10%');
   ok(tameChance({ effort: 3, close: 3, imp: 3, project: true, match: true }) === 30, 'highest = 30%');
   ok(pointChance(1) === 14 && pointChance(20) === 30 && breedChance(true) === 30, 'point + breed odds cap at 30%');
-  const gg = { c: ['P', 'P'], h: ['h', 'h'], f: ['f', 'f'], s: ['s', 's'], t: ['t', 't'], g: ['g', 'g'], z: ['*'] };
+  const gg = { c: ['P', 'P'], w: ['W', 'W'], h: ['h', 'h'], r: ['w', 'w'], t: ['t', 't'], p: ['p', 'p'], g: ['g', 'g'], z: ['*'] };
   const dad = { ...gg, c: ['B', 'B'], z: ['-', '-'] };
   for (let i = 0; i < 20; i++) {
     const kid = cross(gg, dad, 'F');
@@ -697,6 +684,15 @@ function dragonSelfTest() {
   ok(colorOf(newDragon('steady', 'x').genes.c)[0] === 'moss', 'wild Steady dragon is moss');
   const s1 = newDragon('steady', 'x'), s2 = newDragon('steady', 'y'); s1.sex = 'F'; s2.sex = 'M';
   ok(colorOf(makeBaby(s1, s2).genes.c)[0] === 'moss', 'Steady x Steady baby is moss');
+  ok(secondOf(['P', 'W'])[0] === 'blush' && secondOf(['Y', 'B'])[0] === 'mint', 'wing colors blend');
+  ok(pheno(gg, 'F').h === 'stubby' && pheno({ ...gg, h: ['h', 'A'] }, 'F').h === 'swept-back', 'horn dominance chain');
+  ok(LOCI.every(L => L.al.length === L.a.length && L.al.length === L.dna.length && new Set(L.al).size === L.al.length), 'every gene has a look + codon per allele');
+  const all = [...Object.values(CODE), ...Object.values(CODE2), ...LOCI.flatMap(L => L.dna)];
+  ok(new Set(all).size === all.length, 'every codon is unique');
+  for (const pose of POSES) {
+    const svg = dragonSVG({ ...newDragon('seeker', 'x'), rare: pose === 'egg' ? 'Starwish' : null }, { pose });
+    ok(!/\{[A-Z]\w*\}|undefined|NaN/.test(svg), `pose ${pose} draws with every color filled in`);
+  }
   console.log('dragon self-test done');
 }
 if (new URLSearchParams(location.search).has('demo')) addEventListener('load', dragonSelfTest);
