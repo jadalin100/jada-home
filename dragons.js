@@ -285,7 +285,11 @@ function heptagon(tr) {
 }
 
 // ---------- den storage ----------
-const loadDen = async () => ({ dragons: [], tamed: {}, rested: {}, history: [], ...(await readJSON('dragons/den.json', {})) });
+const loadDen = async () => {
+  const den = { dragons: [], tamed: {}, rested: {}, history: [], ...(await readJSON('dragons/den.json', {})) };
+  for (const d of den.dragons) { const r = randomGenes(d.sex); for (const k in r) d.genes[k] ||= r[k]; }   // a gene added later gets a random value
+  return den;
+};
 const saveDen = (den, msg) => { dotdMemo = null; return save('dragons/den.json', JSON.stringify(den, null, 1) + '\n', msg); };
 async function isDownDay(den) {
   if (den.down === today()) return true;
