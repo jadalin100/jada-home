@@ -162,17 +162,19 @@ function facts(main, task, bredFrom) {
     story: bredFrom ? `Hatched in the den from ${bredFrom}'s egg, kept warm by both of them until it wobbled out.`
       : `Born in the ${PLACES[TR[main].el]}, it found you while you were finishing "${task}" and decided anyone who finishes things like that is worth following home.` };
 }
+const STEADY_GREEN = (g, main) => main === 'steady' ? { ...g, c: ['E', 'E'] } : g;   // Steady dragons always come out moss green
+const babyBorn = (mom, dad) => Object.fromEntries(TRAITS.map(t => [t.k, r1((mom.born[t.k] + dad.born[t.k]) / 2)]));   // parents' traits at adoption
 function newDragon(trait, task, rare) {
   const sex = Math.random() < .5 ? 'F' : 'M';
   const born = Object.fromEntries(TRAITS.map(t => [t.k, r1(t.k === trait ? 6 + Math.random() * 2 : 1 + Math.random() * 4)]));
-  return { id: uid(), name: '', sex, genes: randomGenes(sex), born, traits: { ...born }, rare, hatched: today(), from: task, gen: 1, points: 0, visits: [], ...facts(trait, task) };
+  return { id: uid(), name: '', sex, genes: STEADY_GREEN(randomGenes(sex), trait), born, traits: { ...born }, rare, hatched: today(), from: task, gen: 1, points: 0, visits: [], ...facts(trait, task) };
 }
 function makeBaby(mom, dad) {
   const sex = Math.random() < .5 ? 'F' : 'M';
-  const born = Object.fromEntries(TRAITS.map(t => [t.k, r1((mom.born[t.k] + dad.born[t.k]) / 2)]));   // parents' traits at adoption
+  const born = babyBorn(mom, dad);
   const rares = [mom.rare, dad.rare].filter(Boolean);
   const rare = rares.length && Math.random() < .1 ? pick(rares) : null;
-  return { id: uid(), name: '', sex, genes: cross(mom.genes, dad.genes, sex), born, traits: { ...born }, rare, hatched: today(),
+  return { id: uid(), name: '', sex, genes: STEADY_GREEN(cross(mom.genes, dad.genes, sex), mainTrait(born)), born, traits: { ...born }, rare, hatched: today(),
     from: `${dname(mom)} + ${dname(dad)}`, parents: [mom.id, dad.id], gen: Math.max(mom.gen, dad.gen) + 1, points: 0, visits: [],
     ...facts(mainTrait(born), '', `${dname(mom)} and ${dname(dad)}`) };
 }
@@ -577,7 +579,7 @@ async function viewDragons() {
         Horns: swept-back A &gt; ram curl H &gt; spiky K &gt; nubs h. Wings: bat M &gt; feathered F &gt; fin L &gt; tiny f.
         A dragon shows whichever of its two letters is higher in the chain, so a nubs-horned dragon must be hh, and two AK parents can still have a spiky (KK) baby 1 time in 4.</p>
       <p><strong>Glitter is recessive</strong>: only gg dragons sparkle. Two Gg parents have a 1 in 4 chance of a sparkly baby.</p>
-      <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y, green E → PP pink, BB blue, YY butter, EE moss, BP lavender, PY peach, BY mint, BE sea glass, EP oat, EY lime.</p>
+      <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y, green E → PP pink, BB blue, YY butter, EE moss, BP lavender, PY peach, BY mint, BE sea glass, EP oat, EY lime. Steady dragons are always EE, so they always come out moss.</p>
       <p><strong>Personality</strong>: a baby starts at the average of its parents' traits from the day they joined the den, not their grown ones. Ultra-rare traits pass on 10% of the time.</p>
       <p><strong>DNA decoder</strong>: ${Object.entries(CODE).map(([a, c]) => `${a === '*' ? 'Z★' : a === '-' ? 'Z' : a === 'W' ? 'W chromosome' : a} = ${c}`).join(' · ')}</p>
     </div></details></section>`;
@@ -591,6 +593,7 @@ async function viewDragons() {
       const n = den.history.filter(h => h.k === 'tame' && h.d === today() && h.tr === k).length; return n > a[1] ? [k, n] : a; }, [null, 0])[0];
     const match = !!top && [mainTrait(m.traits), mainTrait(f.traits)].includes(top);
     const odds = offspringOdds(m.genes, f.genes);
+    if (mainTrait(babyBorn(m, f)) === 'steady') odds.Color = { moss: 100 };   // baby will be Steady, so always green
     info.innerHTML = `${oddsHtml(breedChance(match), ['25% base', match && `+5% a parent is ${TR[top].n}, your #1 today`])}
       ${den.rested[key] === today() ? '<p class="small"><span class="tag warn">This pair is resting until tomorrow.</span></p>' : ''}
       <details class="small"><summary>What babies could look like</summary><ul class="facts">${Object.entries(odds).map(([g, o]) =>
@@ -690,6 +693,9 @@ function dragonSelfTest() {
   ok(TRAITS.every(t => Math.abs(baby.born[t.k] - r1((a.born[t.k] + b.born[t.k]) / 2)) < .001), 'baby = average of adoption traits');
   ok(traitOf('Email Prof about the paper draft', null, { history: [] }) !== undefined, 'traitOf returns a trait');
   ok(traitOf('Viola practice', null, { history: [] }) === 'steady', 'viola -> Steady');
+  ok(colorOf(newDragon('steady', 'x').genes.c)[0] === 'moss', 'wild Steady dragon is moss');
+  const s1 = newDragon('steady', 'x'), s2 = newDragon('steady', 'y'); s1.sex = 'F'; s2.sex = 'M';
+  ok(colorOf(makeBaby(s1, s2).genes.c)[0] === 'moss', 'Steady x Steady baby is moss');
   console.log('dragon self-test done');
 }
 if (new URLSearchParams(location.search).has('demo')) addEventListener('load', dragonSelfTest);
