@@ -106,8 +106,9 @@ const pointChance = streakDays => Math.min(30, 12 + 2 * streakDays);
 const breedChance = match => 25 + (match ? 5 : 0);
 
 // ---------- genetics ----------
-// 6 colors from 3 blending alleles (incomplete dominance)
-const COLORS = { PP: ['pink', '#f6c3d6'], BB: ['blue', '#c6dcf4'], YY: ['butter', '#fbe0a0'], BP: ['lavender', '#d9c8f5'], PY: ['peach', '#f9cdb0'], BY: ['mint', '#c9ead8'] };
+// 10 colors from 4 blending alleles (incomplete dominance)
+const COLORS = { PP: ['pink', '#f6c3d6'], BB: ['blue', '#c6dcf4'], YY: ['butter', '#fbe0a0'], EE: ['moss', '#b3d4a4'], BP: ['lavender', '#d9c8f5'], PY: ['peach', '#f9cdb0'], BY: ['mint', '#c9ead8'],
+  BE: ['sea glass', '#b7d9d6'], EP: ['oat', '#e6d8bf'], EY: ['lime', '#d9eaa6'] };
 // al = alleles from most to least dominant; a = what each one looks like. Horns and wings have 4 alleles (a dominance series).
 const LOCI = [
   { k: 'h', n: 'Horns', al: ['A', 'H', 'K', 'h'], a: ['swept-back', 'ram curl', 'spiky', 'nubs'] },
@@ -116,7 +117,7 @@ const LOCI = [
   { k: 't', n: 'Tail tip', al: ['T', 't'], a: ['heart', 'leaf'] },
   { k: 'g', n: 'Glitter', al: ['G', 'g'], a: ['no sparkle', 'sparkly'] },
 ];
-const CODE = { P: 'GCA', B: 'GCT', Y: 'GCG', A: 'CAA', H: 'CAT', K: 'CAG', h: 'CAC', M: 'TTC', F: 'TTA', L: 'TTT', f: 'TTG',
+const CODE = { P: 'GCA', B: 'GCT', Y: 'GCG', E: 'GCC', A: 'CAA', H: 'CAT', K: 'CAG', h: 'CAC', M: 'TTC', F: 'TTA', L: 'TTT', f: 'TTG',
   S: 'AGT', s: 'AGC', T: 'ACA', t: 'ACG', G: 'GGA', g: 'GGT', '*': 'TAC', '-': 'TAT', W: 'TGG' };
 const colorOf = c => COLORS[[...c].sort().join('')];
 const rank = (L, x) => L.al.indexOf(x);
@@ -130,7 +131,7 @@ function pheno(g, sex) {
 }
 function randomGenes(sex) {
   const two = xs => [pick(xs), pick(xs)];
-  return { c: two('PBY'), h: two('AHKh'), f: two('MFLf'), s: two('Ss'), t: two('Tt'), g: two('GGGg'),
+  return { c: two('PBYE'), h: two('AHKh'), f: two('MFLf'), s: two('Ss'), t: two('Tt'), g: two('GGGg'),
     z: (sex === 'F' ? [0] : [0, 0]).map(() => Math.random() < .3 ? '*' : '-') };
 }
 function cross(mom, dad, sex) {   // mom is ZW, dad is ZZ
@@ -576,7 +577,7 @@ async function viewDragons() {
         Horns: swept-back A &gt; ram curl H &gt; spiky K &gt; nubs h. Wings: bat M &gt; feathered F &gt; fin L &gt; tiny f.
         A dragon shows whichever of its two letters is higher in the chain, so a nubs-horned dragon must be hh, and two AK parents can still have a spiky (KK) baby 1 time in 4.</p>
       <p><strong>Glitter is recessive</strong>: only gg dragons sparkle. Two Gg parents have a 1 in 4 chance of a sparkly baby.</p>
-      <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y → PP pink, BB blue, YY butter, BP lavender, PY peach, BY mint.</p>
+      <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y, green E → PP pink, BB blue, YY butter, EE moss, BP lavender, PY peach, BY mint, BE sea glass, EP oat, EY lime.</p>
       <p><strong>Personality</strong>: a baby starts at the average of its parents' traits from the day they joined the den, not their grown ones. Ultra-rare traits pass on 10% of the time.</p>
       <p><strong>DNA decoder</strong>: ${Object.entries(CODE).map(([a, c]) => `${a === '*' ? 'Z★' : a === '-' ? 'Z' : a === 'W' ? 'W chromosome' : a} = ${c}`).join(' · ')}</p>
     </div></details></section>`;
@@ -677,6 +678,7 @@ function dragonSelfTest() {
     const kid = cross(gg, dad, 'F');
     ok(kid.g.join('') === 'gg' && pheno(kid, 'F').g === 'sparkly', 'gg x gg is always sparkly');
     ok(colorOf(kid.c)[0] === 'lavender', 'PP x BB is always lavender');
+    ok(colorOf(['E', 'E'])[0] === 'moss' && colorOf(['Y', 'E'])[0] === 'lime', 'EE is moss, EY is lime');
     ok(!hasStar(kid.z, 'F'), 'daughter gets dad\'s plain Z, so no star');
     ok(hasStar(cross(gg, { ...dad, z: ['*', '*'] }, 'M').z, 'M'), 'son of starred mom + double-starred dad has a star');
   }
