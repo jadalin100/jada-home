@@ -120,6 +120,8 @@ const LOCI = [
   { k: 't', n: 'Tail tip', al: ['T', 'S', 'C', 'F', 'U', 't'], a: ['heart', 'spade', 'club', 'fins', 'curl', 'leaf'], dna: ['ACA', 'ACT', 'ACC', 'AAA', 'AAT', 'ACG'] },
   { k: 'p', n: 'Wing pattern', al: ['B', 'S', 'L', 'R', 'O', 'p'], a: ['blossoms', 'stardust', 'lace', 'pearls', 'ombre', 'plain'], dna: ['AGA', 'AGT', 'AGG', 'ATA', 'ATT', 'AGC'] },
   { k: 'g', n: 'Glitter', al: ['G', 'g'], a: ['no sparkle', 'sparkly'], dna: ['GGA', 'GGT'] },
+  // codominance, like a roan cow: gold and pearl are equal, so one of each shows both as stripes
+  { k: 'k', n: 'Horn color', al: ['G', 'P', 'n'], a: ['gold', 'pearl', 'plain'], dna: ['GAG', 'GAC', 'GTA'], show: p => p.includes('G') && p.includes('P') ? 'roan' : p.includes('G') ? 'gold' : p.includes('P') ? 'pearl' : 'plain' },
   { k: 'o', n: 'Ghost', al: ['O', 'o'], a: ['colored', 'ghost'], dna: ['GAA', 'GAT'] },   // epistasis: oo hides the color genes
 ];
 const CODE = { P: 'GCA', B: 'GCT', Y: 'GCG', E: 'GCC', '*': 'TAC', '-': 'TAT', W: 'TGG' };   // body color, star, W chromosome
@@ -130,7 +132,7 @@ const colorOf = c => COLORS[[...c].sort().join('')];
 const secondOf = w => SECOND[[...w].sort().join('')];
 const rank = (L, x) => L.al.indexOf(x);
 const sortPair = (L, pair) => [...pair].sort((x, y) => rank(L, x) - rank(L, y));
-const showOf = (L, pair) => L.a[rank(L, sortPair(L, pair)[0])];
+const showOf = (L, pair) => L.show ? L.show(pair) : L.a[rank(L, sortPair(L, pair)[0])];
 const codon = (L, x) => L.dna[rank(L, x)];
 const hasStar = (z, sex) => sex === 'F' ? z[0] === '*' : z.every(a => a === '*');
 function pheno(g, sex) {
@@ -140,7 +142,7 @@ function pheno(g, sex) {
 }
 function randomGenes(sex) {
   const two = xs => [pick(xs), pick(xs)], g = { c: two('PBYE'), w: two('WPBY') };
-  for (const L of LOCI) g[L.k] = two(L.k === 'g' ? 'GGGg' : L.k === 'o' ? 'OOOo' : L.al);
+  for (const L of LOCI) g[L.k] = two(L.k === 'g' ? 'GGGg' : L.k === 'o' ? 'OOOo' : L.k === 'k' ? 'GPnn' : L.al);
   g.z = (sex === 'F' ? [0] : [0, 0]).map(() => Math.random() < .3 ? '*' : '-');
   return g;
 }
@@ -221,6 +223,8 @@ function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
   const v = look ? { B: `url(#b${id})`, MB: look.wingGrad ? `url(#b${id})` : look.MB, ...look }
     : { B: c, OL: ghost ? mix(sat(shade(P.color[1], -.55), 1.6), '#ffffff', .38) : sat(shade(c, -.55), 1.6), BE: mix(c, '#fffbe6', .75), RI: shade(c, -.1), MB: mix(c, '#ffffff', .4), MZ: mix(c, '#ffffff', .18) };
   Object.assign(v, { BL: '#f2a7a7', AC, AD, A2, CID: id + 'w' });
+  const GOLD = '#f4d27c', PEARL = '#f8f2fb';   // horn colors; roan = both as stripes
+  v.HF = { gold: GOLD, pearl: PEARL, roan: `url(#r${id})`, plain: v.RI }[P.k];
   const f = s => s.replace(/\{(\w+)\}/g, (m, k) => v[k] ?? m);
   const flip = s => `<g transform="translate(120 0) scale(-1 1)">${s}</g>`, both = s => s + flip(s);
   const eye = '#33281f', S = (w = 1.7) => `stroke="${v.OL}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
@@ -257,8 +261,8 @@ function dragonSVG(d, { pose = 'stand', hat = isBirthday(d) } = {}) {
   }[pose] || '';
   const glit = P.g === 'sparkly' ? `<g class="glit" fill="#ffe27a" stroke="#fff" stroke-width=".6">${[[18, 60], [102, 30], [100, 84], [22, 100], [64, 8]].map(([x, y]) => `<path d="M${x} ${y - 4}l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>`).join('')}</g>` : '';
   const aura = d.rare ? `<ellipse class="aura" cx="60" cy="64" rx="54" ry="52" fill="${RARE[d.rare][1]}" opacity=".35"/>` : '';
-  const defs = look ? `<defs>${grad('b' + id, ...look.g)}</defs>` : '';
-  const body = `${wings}${tail}${both(f(DPARTS.frill[P.r]))}${both(f(DPARTS.horn[P.h]))}${f(DPARTS.sil)}${f(DPARTS.chin)}${f(DPARTS.belly)}${f(DPARTS.freck)}
+  const defs = `<defs>${look ? grad('b' + id, ...look.g) : ''}${P.k === 'roan' ? `<pattern id="r${id}" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(35)"><rect width="4" height="4" fill="${PEARL}"/><rect width="2" height="4" fill="${GOLD}"/></pattern>` : ''}</defs>`;
+  const body = `${wings}${tail}${both(f(DPARTS.frill[P.r]))}${both(f(DPARTS.horn[P.h].replaceAll('fill="{RI}"', 'fill="{HF}"')))}${f(DPARTS.sil)}${f(DPARTS.chin)}${f(DPARTS.belly)}${f(DPARTS.freck)}
     ${pose === 'egg' ? '' : f(DPARTS.feet)}${shell}${prop}${paws}${f(DPARTS.crest)}${face}${RARE_COLOR[d.rare] === 'galaxy' ? DPARTS.stars : ''}`;
   return `<svg viewBox="0 0 120 120" class="dragon" aria-hidden="true">${defs}${aura}<ellipse cx="60" cy="113" rx="${pose === 'fly' ? 14 : 24}" ry="3" fill="#000" opacity=".07"/>
     <g transform="translate(0 ${lift})">${body}</g>${extra}${glit}</svg>`;
@@ -563,8 +567,9 @@ async function viewDragons() {
       <p><strong>Sex uses the ZW system</strong>, like birds and many reptiles: girls are ZW, boys are ZZ. Daughters get their Z from dad (and W from mom); sons get one Z from each parent.</p>
       <p><strong>The star mark rides on the Z.</strong> A girl shows it with one starred Z. A boy needs two. That is the reverse of human X-linked traits like color blindness, where boys show it more.</p>
       <p><strong>Horns, frills, tail tips, and wing patterns are dominance chains</strong>, like rabbit coat colors. A dragon shows whichever of its two letters is higher in the chain.
-        ${LOCI.filter(L => L.k !== 'g').map(L => `${L.n}: ${L.al.map((a, i) => `${L.a[i]} ${a}`).join(' &gt; ')}.`).join(' ')}
+        ${LOCI.filter(L => !'gok'.includes(L.k)).map(L => `${L.n}: ${L.al.map((a, i) => `${L.a[i]} ${a}`).join(' &gt; ')}.`).join(' ')}
         So a stubby-horned dragon must be hh, and two AK parents can still have a twin-horned (KK) baby 1 time in 4.</p>
+      <p><strong>Horn color is codominant</strong>, like a roan cow: gold G and pearl P are equal, so a GP dragon shows both as striped (roan) horns. Plain n is recessive to both.</p>
       <p><strong>Ghost hides color</strong> (epistasis, like albinism): an oo dragon is pale no matter what its color genes say. It still carries those colors and passes them to its babies. Ultra-rare colors still win over ghost.</p>
       <p><strong>Glitter is recessive</strong>: only gg dragons sparkle. Two Gg parents have a 1 in 4 chance of a sparkly baby.</p>
       <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y, green E → PP pink, BB blue, YY butter, EE moss, BP lavender, PY peach, BY mint, BE sea glass, EP oat, EY lime. Steady dragons are always EE, so they always come out moss.</p>
@@ -667,7 +672,7 @@ function dragonSelfTest() {
   ok(tameChance({ effort: 1, close: 1, imp: 1 }) === 10, 'lowest task = 10%');
   ok(tameChance({ effort: 3, close: 3, imp: 3, project: true, match: true }) === 30, 'highest = 30%');
   ok(pointChance(1) === 14 && pointChance(20) === 30 && breedChance(true) === 30, 'point + breed odds cap at 30%');
-  const gg = { c: ['P', 'P'], w: ['W', 'W'], h: ['h', 'h'], r: ['w', 'w'], t: ['t', 't'], p: ['p', 'p'], g: ['g', 'g'], o: ['O', 'o'], z: ['*'] };
+  const gg = { c: ['P', 'P'], w: ['W', 'W'], h: ['h', 'h'], r: ['w', 'w'], t: ['t', 't'], p: ['p', 'p'], g: ['g', 'g'], o: ['O', 'o'], k: ['n', 'n'], z: ['*'] };
   const dad = { ...gg, c: ['B', 'B'], z: ['-', '-'] };
   for (let i = 0; i < 20; i++) {
     const kid = cross(gg, dad, 'F');
@@ -688,6 +693,9 @@ function dragonSelfTest() {
   ok(colorOf(newDragon('steady', 'x').genes.c)[0] === 'moss', 'wild Steady dragon is moss');
   const s1 = newDragon('steady', 'x'), s2 = newDragon('steady', 'y'); s1.sex = 'F'; s2.sex = 'M';
   ok(colorOf(makeBaby(s1, s2).genes.c)[0] === 'moss', 'Steady x Steady baby is moss');
+  ok(pheno({ ...gg, k: ['G', 'P'] }, 'F').k === 'roan' && pheno({ ...gg, k: ['n', 'G'] }, 'F').k === 'gold' && pheno({ ...gg, k: ['n', 'n'] }, 'F').k === 'plain', 'horn color is codominant');
+  ok(offspringOdds({ ...gg, k: ['G', 'G'] }, { ...dad, k: ['P', 'P'] })['Horn color'].roan === 100, 'GG x PP = all roan');
+  ok(dragonSVG({ ...newDragon('seeker', 'x'), genes: { ...gg, k: ['G', 'P'] } }).includes('<pattern'), 'roan horns draw stripes');
   ok(pheno(gg, 'F').o === 'colored' && pheno({ ...gg, o: ['o', 'o'] }, 'F').o === 'ghost', 'only oo is ghost');
   ok(offspringOdds({ ...gg, o: ['O', 'o'] }, { ...dad, o: ['O', 'o'] }).Ghost.ghost === 25, 'Oo x Oo = 25% ghost');
   ok(dragonSVG({ ...newDragon('seeker', 'x'), genes: { ...gg, o: ['o', 'o'] } }).includes(mix(colorOf(gg.c)[1], '#ffffff', .8)), 'ghost dragon draws pale');
