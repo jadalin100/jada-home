@@ -128,6 +128,8 @@ async function viewHome() {
     read(`journal/${addDays(t, -1)}.md`), list('routines'), readJSON('data/study.json', { tracks: [] }),
   ]);
   const school = await readJSON('school/week.json', { items: [] });
+  const pri = await readJSON('data/priorities.json', { items: [] });
+  const priSorted = [...pri.items].sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
   const days = [...new Set(school.items.filter(e => e.date >= t).map(e => e.date))].sort().slice(0, 7);
   const y = parse(yText, addDays(t, -1));
   setMood(parse(await read(`journal/${t}.md`), t).mood || y.mood);
@@ -142,6 +144,12 @@ async function viewHome() {
       <div id="dotd"></div>
       <p class="quote">${quote ? esc(quote) + (who ? `<cite>— ${esc(who)}</cite>` : '') : '<span class="muted">Your quote lands here with the 7am email.</span>'}</p>
     </div>
+
+    ${priSorted.length ? `<div class="card pri"><h2>Priorities</h2><div class="prilist">${priSorted.map(p => {
+      const n = p.due ? daysUntil(p.due) : null;
+      return `<details><summary><span class="pd ${n !== null && n <= 7 ? 'soon' : ''}">${n === null ? '–' : n <= 0 ? 'now' : n + 'd'}</span>${esc(p.t)}<span class="muted small"> · ${esc(p.when)}</span></summary>
+        <ul>${p.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>`;
+    }).join('')}</div>${(pri.notes || []).length ? `<p class="small muted">Notes: ${pri.notes.map(esc).join(' · ')}</p>` : ''}</div>` : ''}
 
     <div class="split">
       <div class="card">
@@ -161,7 +169,7 @@ async function viewHome() {
         ${todos.some(x => x.done) ? '<p><button class="ghost" id="clearDone">Clear checked</button></p>' : ''}
       </div>
       <div class="card">
-        <h2><a href="#study">Study streaks</a></h2>
+        <h2><a href="#study">Streaks</a></h2>
         <ul class="streaks">${study.tracks.map((tr, ti) => `<li><span>${esc(tr.name)}</span><span class="d">${streak(tr.days || [])}</span>
           ${studyBtn(tr, ti, 'ghost')}</li>`).join('')}</ul>
       </div>
@@ -246,7 +254,7 @@ async function viewHome() {
 // one "studied today" button per study track; used on Home and Study
 const studyBtn = (tr, ti, cls = '') => {
   const done = (tr.days || []).includes(today());
-  return `<button class="${cls}" data-day="${ti}" ${done ? 'disabled' : ''}>${done ? 'Done today ✓' : 'Studied today'}</button>`;
+  return `<button class="${cls}" data-day="${ti}" ${done ? 'disabled' : ''}>${done ? 'Done today ✓' : tr.btn || 'Studied today'}</button>`;
 };
 function bindStudyBtns(study) {
   $view.querySelectorAll('[data-day]').forEach(b => b.onclick = async () => {

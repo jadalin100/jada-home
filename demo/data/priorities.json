@@ -1,0 +1,5 @@
+{"items":[
+ {"t":"Sample Test","when":"This Saturday","due":"2026-10-17","steps":["Practice 20 questions a day"]},
+ {"t":"Sample Science Fair","when":"Beginning November","due":"2026-11-01","steps":["Finish analysis","Make slides"]},
+ {"t":"Sample Course","when":"Before Unit 6","due":"","steps":["Unit 6","Unit 7"]}
+],"notes":["Sample note"]}

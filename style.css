@@ -385,3 +385,13 @@ ul.facts li { margin: .2rem 0; }
   #anytime li:not(.lvl):not(.sub) { flex-wrap: wrap; }
   #anytime .rate { order: 3; width: 100%; justify-content: flex-start; padding-left: 1.6rem; }
 }
+
+/* priorities card at the top of Home: one line each, tap to see the action plan */
+.pri { margin-bottom: 1.2rem; }
+.prilist { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0 1.2rem; }
+.prilist details { border-bottom: 1px dashed var(--line); padding: .3rem 0; }
+.prilist summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: .5rem; }
+.prilist summary::-webkit-details-marker { display: none; }
+.prilist .pd { min-width: 3ch; font-size: .8rem; font-weight: 600; color: var(--ink-soft); }
+.prilist .pd.soon { color: var(--urgent); }
+.prilist ul { margin: .3rem 0 .4rem 3.2ch; padding-left: 1rem; font-size: .9rem; }
