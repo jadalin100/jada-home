@@ -44,6 +44,11 @@
    },
    "resources": {},
    "days": []
+  },
+  {
+   "name": "Demo Exercise",
+   "btn": "Did 30 min today",
+   "days": []
   }
  ]
 }

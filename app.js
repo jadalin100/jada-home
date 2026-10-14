@@ -120,6 +120,7 @@ function rankTodos(todos) {
     sub: n === 0 || rows[n - 1].lv !== r.lv || rows[n - 1].ef !== r.ef ? EFFORT[r.ef - 1] : '' }));
 }
 
+let priEdit = false;   // Home priorities card: view or edit mode
 async function viewHome() {
   const t = today();
   const [inbox, projects] = await Promise.all([readJSON('data/inbox.json', []), readJSON('data/projects.json', [])]);
@@ -145,11 +146,20 @@ async function viewHome() {
       <p class="quote">${quote ? esc(quote) + (who ? `<cite>— ${esc(who)}</cite>` : '') : '<span class="muted">Your quote lands here with the 7am email.</span>'}</p>
     </div>
 
-    ${priSorted.length ? `<div class="card pri"><h2>Priorities</h2><div class="prilist">${priSorted.map(p => {
+    ${priEdit ? `<div class="card pri"><h2>Priorities <button class="ghost" id="priDone">Done</button></h2>
+      ${pri.items.map((p, i) => `<div class="priedit" data-pi="${i}">
+        <input type="text" data-f="t" value="${esc(p.t)}" aria-label="Priority name">
+        <input type="text" data-f="when" value="${esc(p.when || '')}" placeholder="Deadline, in words" aria-label="Deadline in words">
+        <input type="date" data-f="due" value="${esc(p.due || '')}" aria-label="Due date (for sorting)">
+        <button class="x" data-pdel="${i}" aria-label="Delete ${esc(p.t)}">×</button>
+        <textarea data-f="steps" rows="${Math.max(2, p.steps.length)}" placeholder="Action steps, one per line" aria-label="Action steps">${esc(p.steps.join('\n'))}</textarea></div>`).join('')}
+      <p class="row"><button class="ghost" id="priAdd">+ Add priority</button></p>
+      <label class="field" for="priNotes">Notes (one per line)</label><textarea id="priNotes" rows="2">${esc((pri.notes || []).join('\n'))}</textarea></div>`
+    : `<div class="card pri"><h2>Priorities <button class="ghost" id="priEdit">Edit</button></h2>${priSorted.length ? '' : '<p class="muted small">No priorities yet. Tap Edit to add some.</p>'}<div class="prilist">${priSorted.map(p => {
       const n = p.due ? daysUntil(p.due) : null;
       return `<details><summary><span class="pd ${n !== null && n <= 7 ? 'soon' : ''}">${n === null ? '–' : n <= 0 ? 'now' : n + 'd'}</span>${esc(p.t)}<span class="muted small"> · ${esc(p.when)}</span></summary>
         <ul>${p.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>`;
-    }).join('')}</div>${(pri.notes || []).length ? `<p class="small muted">Notes: ${pri.notes.map(esc).join(' · ')}</p>` : ''}</div>` : ''}
+    }).join('')}</div>${(pri.notes || []).length ? `<p class="small muted">Notes: ${pri.notes.map(esc).join(' · ')}</p>` : ''}</div>`}
 
     <div class="split">
       <div class="card">
@@ -245,6 +255,25 @@ async function viewHome() {
     if (due) it.due = due; if (proj) it.project = proj;
     todos.push(it); saveTodos('Add to-do');
   };
+  // priorities edit mode: read every row back from the form, then save once
+  const priFromForm = () => {
+    pri.items = [...$view.querySelectorAll('.priedit')].map(row => {
+      const f = k => row.querySelector(`[data-f="${k}"]`).value.trim();
+      return { t: f('t'), when: f('when'), due: f('due'), steps: f('steps').split('\n').map(x => x.trim()).filter(Boolean) };
+    }).filter(p => p.t);
+    pri.notes = document.getElementById('priNotes').value.split('\n').map(x => x.trim()).filter(Boolean);
+  };
+  const savePri = msg => save('data/priorities.json', JSON.stringify(pri, null, 1) + '\n', msg);
+  const pe = document.getElementById('priEdit');
+  if (pe) pe.onclick = () => { priEdit = true; route(); };
+  const pd = document.getElementById('priDone');
+  if (pd) pd.onclick = async () => { priFromForm(); priEdit = false; await savePri('Edit priorities'); route(); };
+  const pa = document.getElementById('priAdd');
+  if (pa) pa.onclick = () => { priFromForm(); pri.items.push({ t: 'New priority', when: '', due: '', steps: [] }); savePri('Add priority').then(route); };
+  $view.querySelectorAll('[data-pdel]').forEach(b => b.onclick = () => {
+    priFromForm(); const p = pri.items[b.dataset.pdel];
+    if (p && confirm(`Delete ${p.t}?`)) { pri.items.splice(b.dataset.pdel, 1); savePri('Delete priority').then(route); }
+  });
   fillDotd(document.getElementById('dotd'));
   const cd = document.getElementById('clearDone');
   if (cd) cd.onclick = () => { todos.splice(0, todos.length, ...todos.filter(x => !x.done)); saveTodos('Clear checked to-dos'); };
@@ -564,7 +593,7 @@ async function viewStudy() {
           <div class="dots" aria-label="Last 21 days">${last21.map(d => `<span class="${(tr.days || []).includes(d) ? 'on' : ''}" title="${d}"></span>`).join('')}</div></div>
         ${dls.length ? `<div class="deadlines">${dls.map(d => `<div class="card dl ${daysUntil(d.date) <= 7 ? 'soon' : ''}"><div class="days">${daysUntil(d.date)}</div>
           <div class="small muted">days · ${esc(d.date)}</div><p>${esc(d.label)}</p>${d.note ? `<p class="small muted">${esc(d.note)}</p>` : ''}</div>`).join('')}</div>` : ''}
-        <div class="grid" style="margin-top:1rem">${Object.entries(tr.checklists).map(([name, items]) => block(ti, name, items)).join('')}
+        <div class="grid" style="margin-top:1rem">${Object.entries(tr.checklists || {}).map(([name, items]) => block(ti, name, items)).join('')}
           <div class="card add"><h3>New checklist</h3><input type="text" placeholder="e.g. an event name" data-newlist="${ti}" aria-label="New checklist for ${esc(tr.name)}"></div></div>
         <h3 style="margin-top:1.4rem">Helpful sites</h3>
         <div class="grid" style="margin-top:.6rem">${links(tr.resources) || '<p class="muted small">None yet.</p>'}</div>
@@ -584,7 +613,7 @@ async function viewStudy() {
     listOf(inp).push({ t: inp.value.trim(), done: false }); await persist('Add study topic'); route();
   });
   $view.querySelectorAll('[data-newlist]').forEach(inp => inp.onkeydown = async ev => {
-    const name = inp.value.trim(), lists = study.tracks[inp.dataset.newlist].checklists;
+    const name = inp.value.trim(), lists = (study.tracks[inp.dataset.newlist].checklists ||= {});
     if (ev.key !== 'Enter' || !name) return;
     if (lists[name]) return toast('That checklist already exists.');
     lists[name] = []; await persist(`New checklist ${name}`); route();

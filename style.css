@@ -395,3 +395,7 @@ ul.facts li { margin: .2rem 0; }
 .prilist .pd { min-width: 3ch; font-size: .8rem; font-weight: 600; color: var(--ink-soft); }
 .prilist .pd.soon { color: var(--urgent); }
 .prilist ul { margin: .3rem 0 .4rem 3.2ch; padding-left: 1rem; font-size: .9rem; }
+.pri h2 button { font-size: .75rem; margin-left: .5rem; vertical-align: middle; }
+.priedit { display: grid; grid-template-columns: 2fr 1.4fr auto auto; gap: .4rem; padding: .6rem 0; border-bottom: 1px dashed var(--line); }
+.priedit textarea { grid-column: 1 / -1; font-size: .9rem; }
+@media (max-width: 600px) { .priedit { grid-template-columns: 1fr auto; } .priedit .x { grid-column: 2; grid-row: 1; } .priedit [data-f="when"], .priedit [data-f="due"] { grid-column: 1 / -1; } }
