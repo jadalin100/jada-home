@@ -176,7 +176,8 @@ function facts(main, task, bredFrom) {
     story: bredFrom ? `Hatched in the den from ${bredFrom}'s egg, kept warm by both of them until it wobbled out.`
       : `Born in the ${PLACES[TR[main].el]}, it found you while you were finishing "${task}" and decided anyone who finishes things like that is worth following home.` };
 }
-const STEADY_GREEN = (g, main) => main === 'steady' ? { ...g, c: ['E', 'E'] } : g;   // Steady dragons always come out moss green
+const FIXED_COLOR = { steady: 'E', leader: 'Y' };   // Steady dragons always come out moss green, Leaders always butter
+const STEADY_GREEN = (g, main) => FIXED_COLOR[main] ? { ...g, c: [FIXED_COLOR[main], FIXED_COLOR[main]] } : g;
 const babyBorn = (mom, dad) => Object.fromEntries(TRAITS.map(t => [t.k, r1((mom.born[t.k] + dad.born[t.k]) / 2)]));   // parents' traits at adoption
 function newDragon(trait, task, rare) {
   const sex = Math.random() < .5 ? 'F' : 'M';
@@ -572,7 +573,7 @@ async function viewDragons() {
       <p><strong>Horn color is codominant</strong>, like a roan cow: gold G and pearl P are equal, so a GP dragon shows both as striped (roan) horns. Plain n is recessive to both.</p>
       <p><strong>Ghost hides color</strong> (epistasis, like albinism): an oo dragon is pale no matter what its color genes say. It still carries those colors and passes them to its babies. Ultra-rare colors still win over ghost.</p>
       <p><strong>Glitter is recessive</strong>: only gg dragons sparkle. Two Gg parents have a 1 in 4 chance of a sparkly baby.</p>
-      <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y, green E → PP pink, BB blue, YY butter, EE moss, BP lavender, PY peach, BY mint, BE sea glass, EP oat, EY lime. Steady dragons are always EE, so they always come out moss.</p>
+      <p><strong>Color blends</strong> (incomplete dominance): pink P, blue B, butter Y, green E → PP pink, BB blue, YY butter, EE moss, BP lavender, PY peach, BY mint, BE sea glass, EP oat, EY lime. Steady dragons are always EE, so they always come out moss, and Leaders are always YY, so they always come out butter.</p>
       <p><strong>Wing color blends too</strong> and colors the wing decorations: white W, pink P, sky B, butter Y → ${Object.entries(SECOND).map(([k, x]) => `${k.toLowerCase()} ${x[0]}`).join(', ')}.</p>
       <p><strong>Ultra-rare colors</strong>: each ultra-rare trait brings its own body color, which beats the color genes (even Steady green): ${Object.entries(RARE_COLOR).map(([r, c]) => `${r} = ${c}`).join(', ')}. Every dragon has freckles.</p>
       <p><strong>Personality</strong>: a baby starts at the average of its parents' traits from the day they joined the den, not their grown ones. Ultra-rare traits pass on 10% of the time.</p>
