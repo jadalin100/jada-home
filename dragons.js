@@ -176,7 +176,7 @@ function facts(main, task, bredFrom) {
     story: bredFrom ? `Hatched in the den from ${bredFrom}'s egg, kept warm by both of them until it wobbled out.`
       : `Born in the ${PLACES[TR[main].el]}, it found you while you were finishing "${task}" and decided anyone who finishes things like that is worth following home.` };
 }
-const FIXED_COLOR = { steady: 'E', leader: 'Y' };   // Steady dragons always come out moss green, Leaders always butter
+const FIXED_COLOR = { steady: 'E', leader: 'Y', original: 'P' };   // Steady dragons always come out moss green, Leaders butter, Originals pink
 const STEADY_GREEN = (g, main) => FIXED_COLOR[main] ? { ...g, c: [FIXED_COLOR[main], FIXED_COLOR[main]] } : g;
 const babyBorn = (mom, dad) => Object.fromEntries(TRAITS.map(t => [t.k, r1((mom.born[t.k] + dad.born[t.k]) / 2)]));   // parents' traits at adoption
 function newDragon(trait, task, rare) {
@@ -692,6 +692,7 @@ function dragonSelfTest() {
   ok(traitOf('Email Prof about the paper draft', null, { history: [] }) !== undefined, 'traitOf returns a trait');
   ok(traitOf('Viola practice', null, { history: [] }) === 'steady', 'viola -> Steady');
   ok(colorOf(newDragon('steady', 'x').genes.c)[0] === 'moss', 'wild Steady dragon is moss');
+  ok(colorOf(newDragon('original', 'x').genes.c)[0] === 'pink', 'wild Original dragon is pink');
   const s1 = newDragon('steady', 'x'), s2 = newDragon('steady', 'y'); s1.sex = 'F'; s2.sex = 'M';
   ok(colorOf(makeBaby(s1, s2).genes.c)[0] === 'moss', 'Steady x Steady baby is moss');
   ok(pheno({ ...gg, k: ['G', 'P'] }, 'F').k === 'roan' && pheno({ ...gg, k: ['n', 'G'] }, 'F').k === 'gold' && pheno({ ...gg, k: ['n', 'n'] }, 'F').k === 'plain', 'horn color is codominant');
